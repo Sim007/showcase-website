@@ -2,3 +2,10 @@ node_modules/
 test-results/
 playwright-report/
 .playwright-cli/
+dist/
+coverage/
+.env
+.env.local
+.DS_Store
+Thumbs.db
+.vscode/
