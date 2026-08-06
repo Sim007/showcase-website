@@ -1,4 +1,4 @@
-# showcase-cbt dashboard (MVP)
+# showcase-website
 
 Real-time demonstratiewebsite voor de showcase-cbt-pipelines. De twee uitgewerkte
 hoofdstukken (00-start, 01-basis) draaien hier als **gesimuleerde replay**: dezelfde
