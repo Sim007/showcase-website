@@ -24,6 +24,7 @@ export function listScenarios() {
 }
 
 export function getScenario(id) {
+  if (!/^[a-zA-Z0-9_-]+$/.test(id)) return null;
   const file = path.join(SCENARIOS_DIR, `hoofdstuk-${id}.json`);
   if (!fs.existsSync(file)) return null;
   return JSON.parse(fs.readFileSync(file, 'utf-8'));
