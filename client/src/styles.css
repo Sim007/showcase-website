@@ -1,0 +1,452 @@
+:root {
+  color-scheme: light;
+  --surface-1: #fcfcfb;
+  --page: #f9f9f7;
+  --text-primary: #0b0b0b;
+  --text-secondary: #52514e;
+  --text-muted: #898781;
+  --gridline: #e1e0d9;
+  --border: rgba(11, 11, 11, 0.1);
+  --series-1: #2a78d6; /* lopend */
+  --status-good: #0ca30c; /* groen */
+  --status-critical: #d03b3b; /* rood */
+  --status-pending: #898781; /* wachtend */
+  --ds-payment: #6b5b95; /* deelsysteem payment */
+  --ds-order: #c98a2c; /* deelsysteem order */
+  --ds-keten: #52514e; /* keten-brede, deelsysteem-onafhankelijke stappen */
+}
+
+* { box-sizing: border-box; }
+
+body {
+  margin: 0;
+  background: var(--page);
+  color: var(--text-primary);
+  font-family: system-ui, -apple-system, "Segoe UI", sans-serif;
+}
+
+a { color: inherit; }
+
+.page {
+  max-width: 1180px;
+  margin: 0 auto;
+  padding: 32px 24px 64px;
+}
+
+.top-nav {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  margin-bottom: 24px;
+}
+
+.top-nav a.brand {
+  font-weight: 700;
+  text-decoration: none;
+  font-size: 18px;
+}
+
+/* --- Landing --- */
+/* Zelfde aanpak als de pipeline-pagina: past na F11 op 1920x1080 zonder
+   paginascroll, ook als er later meer hoofdstuk-tegels bijkomen — de
+   tegels-grid krijgt dan zijn eigen interne scroll in plaats van de pagina. */
+
+.page.landing-page {
+  height: 100vh;
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+  padding-top: 16px;
+  padding-bottom: 16px;
+}
+.landing-page .top-nav { flex: 0 0 auto; margin-bottom: 12px; }
+.landing-page .intro { flex: 0 0 auto; }
+.landing-page .tiles { flex: 1 1 auto; min-height: 0; overflow-y: auto; }
+
+.intro {
+  background: var(--surface-1);
+  border: 1px solid var(--border);
+  border-radius: 12px;
+  padding: 28px 32px;
+  margin-bottom: 32px;
+}
+.intro h1 { margin-top: 0; }
+.intro p { color: var(--text-secondary); line-height: 1.55; }
+.intro .hint {
+  font-size: 12px;
+  color: var(--text-muted);
+  margin-top: 16px;
+}
+
+.tiles {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(260px, 1fr));
+  gap: 16px;
+}
+
+.tile {
+  display: block;
+  text-decoration: none;
+  color: inherit;
+  background: var(--surface-1);
+  border: 1px solid var(--border);
+  border-radius: 10px;
+  padding: 18px 20px;
+  transition: box-shadow 0.15s ease, transform 0.15s ease;
+}
+.tile[data-clickable="true"]:hover {
+  box-shadow: 0 2px 10px rgba(11, 11, 11, 0.08);
+  transform: translateY(-1px);
+}
+.tile[data-clickable="false"] {
+  cursor: default;
+  opacity: 0.6;
+}
+
+.tile .nr {
+  font-size: 12px;
+  color: var(--text-muted);
+  font-variant-numeric: tabular-nums;
+}
+.tile h3 { margin: 4px 0 6px; font-size: 16px; }
+.tile p { margin: 0; color: var(--text-secondary); font-size: 13px; line-height: 1.4; }
+
+.badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 12px;
+  font-weight: 600;
+  padding: 3px 9px;
+  border-radius: 999px;
+  margin-top: 10px;
+}
+.badge.werkt { background: rgba(12, 163, 12, 0.12); color: var(--status-good); }
+.badge.binnenkort { background: rgba(137, 135, 129, 0.14); color: var(--text-muted); }
+
+/* --- Pipeline page --- */
+/* Bedoeld om na F11 op 1920x1080 zonder paginascroll te passen: de pagina
+   krijgt een vaste 100vh-hoogte, de graph is het enige onderdeel dat kan
+   groeien en scrollt zelf intern als een hoofdstuk niet past. */
+
+.page.pipeline-page {
+  height: 100vh;
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+  padding-top: 16px;
+  padding-bottom: 16px;
+}
+.pipeline-page .top-nav,
+.pipeline-page .pipeline-header,
+.pipeline-page .meta-row {
+  flex: 0 0 auto;
+}
+.pipeline-page .top-nav { margin-bottom: 12px; }
+.pipeline-page .pipeline-header { margin-bottom: 12px; }
+.pipeline-page .meta-row { margin-bottom: 10px; }
+.pipeline-page .graph {
+  flex: 1 1 auto;
+  min-height: 0;
+  overflow-y: auto;
+  margin-bottom: 12px;
+}
+.pipeline-page .cli-panel {
+  flex: 0 0 auto;
+  height: 220px;
+  margin-bottom: 0;
+}
+
+.pipeline-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 16px;
+  margin-bottom: 20px;
+}
+.pipeline-header h1 { margin: 0 0 4px; }
+.pipeline-header p { margin: 0; color: var(--text-secondary); }
+
+.controls { display: flex; gap: 8px; align-items: center; }
+.controls button, .controls a {
+  font-family: inherit;
+  font-size: 13.3333px;
+  line-height: 1.2;
+}
+button.primary {
+  background: var(--series-1);
+  color: #fff;
+  border: none;
+  border-radius: 8px;
+  padding: 10px 18px;
+  font-weight: 600;
+  cursor: pointer;
+}
+button.primary:disabled { opacity: 0.5; cursor: default; }
+button.ghost, a.ghost {
+  background: transparent;
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  padding: 10px 16px;
+  cursor: pointer;
+  color: var(--text-secondary);
+}
+a.ghost { text-decoration: none; display: inline-flex; align-items: center; }
+
+.meta-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  flex-wrap: wrap;
+  gap: 12px;
+  margin-bottom: 16px;
+}
+
+.deelsystemen-banner {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex-wrap: wrap;
+}
+.deelsystemen-banner .label {
+  font-size: 12px;
+  font-weight: 600;
+  color: var(--text-secondary);
+}
+
+.ds-pill {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  font-family: inherit;
+  font-size: 12px;
+  font-weight: 600;
+  padding: 3px 10px;
+  border: 1px solid transparent;
+  border-radius: 999px;
+  cursor: pointer;
+}
+.ds-pill.ds-payment { background: color-mix(in srgb, var(--ds-payment) 14%, transparent); color: var(--ds-payment); }
+.ds-pill.ds-order { background: color-mix(in srgb, var(--ds-order) 14%, transparent); color: var(--ds-order); }
+.ds-pill.ds-keten { background: color-mix(in srgb, var(--ds-keten) 14%, transparent); color: var(--ds-keten); }
+.ds-pill:hover { filter: brightness(0.95); }
+.ds-pill.ds-pill-off {
+  background: transparent;
+  color: var(--text-muted);
+  border-color: var(--gridline);
+  text-decoration: line-through;
+}
+
+.legend {
+  display: flex;
+  gap: 18px;
+  flex-wrap: wrap;
+  justify-content: flex-end;
+  font-size: 12px;
+  color: var(--text-secondary);
+}
+.legend .item { display: inline-flex; align-items: center; gap: 6px; }
+
+/* --- Graph --- */
+/* Swimlanes: elke rij is een deelsysteem (payment/order/keten) als eigen
+   kleurblok over de volledige breedte; kolommen zijn omgevingen. Zo
+   beginnen bv. alle 'Order'-stappen altijd op dezelfde hoogte, en de
+   keten-rij begint altijd meteen na de order-rij. */
+
+.graph {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  background: var(--surface-1);
+  border: 1px solid var(--border);
+  border-radius: 12px;
+  padding: 16px 20px;
+  margin-bottom: 20px;
+  overflow-x: auto;
+}
+
+.graph-row {
+  display: grid;
+  column-gap: 8px;
+  align-items: stretch;
+}
+
+/* Verticale scheidingslijnen tussen de omgevingskolommen (code/ci/test/
+   acceptatie) — zonder deze zijn de kolommen als 'swimlanes' niet meer te
+   onderscheiden zodra de rij-achtergrond van het deelsysteem overheerst. */
+.graph-row > * {
+  border-right: 1px solid var(--gridline);
+  padding-right: 6px;
+}
+.graph-row > *:last-child {
+  border-right: none;
+  padding-right: 0;
+}
+
+.graph-row-header .col-head {
+  font-size: 12px;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  color: var(--text-muted);
+  text-align: center;
+  padding-bottom: 4px;
+}
+
+.swimlane {
+  border: 1px solid var(--gridline);
+  border-radius: 8px;
+  padding: 10px 12px;
+}
+.swimlane.ds-payment { border-left: 4px solid var(--ds-payment); background: color-mix(in srgb, var(--ds-payment) 5%, var(--surface-1)); }
+.swimlane.ds-order { border-left: 4px solid var(--ds-order); background: color-mix(in srgb, var(--ds-order) 5%, var(--surface-1)); }
+.swimlane.ds-keten { border-left: 4px solid var(--ds-keten); background: color-mix(in srgb, var(--ds-keten) 5%, var(--surface-1)); }
+
+.lane-label { display: flex; align-items: center; gap: 8px; }
+.lane-label h5 {
+  margin: 0;
+  font-size: 11px;
+  text-transform: uppercase;
+  letter-spacing: 0.03em;
+}
+.swimlane.ds-payment .lane-label h5 { color: var(--ds-payment); }
+.swimlane.ds-order .lane-label h5 { color: var(--ds-order); }
+.swimlane.ds-keten .lane-label h5 { color: var(--ds-keten); }
+
+/* Status per deelsysteem — afgeleid door de website (zie
+   deriveDeelsysteemStatus.js), niet aangeleverd door showcase-CBT. */
+.ds-status {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  font-size: 10px;
+  font-weight: 600;
+  padding: 2px 7px;
+  border-radius: 999px;
+  text-transform: none;
+  letter-spacing: 0;
+  white-space: nowrap;
+}
+.ds-status.nog-niet-gestart { background: rgba(137, 135, 129, 0.14); color: var(--text-muted); }
+.ds-status.lopend { background: rgba(42, 120, 214, 0.12); color: var(--series-1); }
+.ds-status.succesvol-afgerond { background: rgba(12, 163, 12, 0.12); color: var(--status-good); }
+.ds-status.gestopt { background: rgba(208, 59, 59, 0.12); color: var(--status-critical); }
+
+.lane-cell {
+  display: flex;
+  flex-direction: column;
+  gap: 5px;
+  min-width: 0;
+}
+
+.node {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  border: 1px solid var(--gridline);
+  border-radius: 6px;
+  padding: 4px 8px;
+  background: var(--page);
+}
+
+.node .shape {
+  flex: 0 0 auto;
+  width: 15px;
+  height: 15px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 8px;
+  font-weight: 700;
+  color: #fff;
+}
+.node .shape.actie { border-radius: 999px; }
+.node .shape.gate { border-radius: 3px; transform: rotate(45deg); }
+.node .shape.gate .glyph { transform: rotate(-45deg); display: block; }
+
+.status-wachtend { background: var(--status-pending); }
+.status-lopend { background: var(--series-1); }
+.status-groen { background: var(--status-good); }
+.status-rood { background: var(--status-critical); }
+.status-niet-uitgevoerd { background: transparent; border: 1px dashed var(--text-muted); color: var(--text-muted); }
+
+.node .label { display: flex; flex-direction: row; align-items: baseline; gap: 6px; min-width: 0; }
+.node .label .nr { flex: 0 0 auto; font-size: 10px; color: var(--text-muted); font-variant-numeric: tabular-nums; }
+.node .label .stap {
+  flex: 1 1 auto;
+  font-size: 12px;
+  color: var(--text-primary);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  min-width: 0;
+}
+
+/* --- CLI panel --- */
+
+.cli-panel {
+  background: #0d0d0d;
+  color: #e1e0d9;
+  border-radius: 12px;
+  padding: 16px 18px;
+  font-family: ui-monospace, "SFMono-Regular", Menlo, Consolas, monospace;
+  font-size: 12.5px;
+  line-height: 1.6;
+  height: 280px;
+  overflow-y: auto;
+  margin-bottom: 20px;
+}
+.cli-panel .line { white-space: pre-wrap; word-break: break-word; }
+.cli-panel .line .prompt { color: #6da7ec; }
+.cli-panel .line.result-groen { color: #4fd44f; }
+.cli-panel .line.result-rood { color: #e66767; }
+.cli-panel .line.result-niet-uitgevoerd { color: #6b6a66; font-style: italic; }
+.cli-panel .empty { color: #52514e; }
+
+/* --- Report table --- */
+
+.report-table {
+  width: 100%;
+  border-collapse: collapse;
+  background: var(--surface-1);
+  border: 1px solid var(--border);
+  border-radius: 12px;
+  overflow: hidden;
+  font-size: 13px;
+}
+.report-table th, .report-table td {
+  text-align: left;
+  padding: 8px 12px;
+  border-bottom: 1px solid var(--gridline);
+}
+.report-table th {
+  color: var(--text-muted);
+  font-size: 11px;
+  text-transform: uppercase;
+  letter-spacing: 0.03em;
+  font-weight: 600;
+}
+.report-table td.nr, .report-table td.tijd { font-variant-numeric: tabular-nums; color: var(--text-secondary); }
+.report-table td.omgeving { text-transform: capitalize; }
+.report-table td.cli { font-family: ui-monospace, Menlo, Consolas, monospace; font-size: 12px; color: var(--text-secondary); }
+.report-table td.bijzonderheden { color: var(--text-secondary); }
+
+.outcome {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  font-weight: 600;
+  font-size: 12px;
+}
+.outcome.wachtend { color: var(--text-muted); }
+.outcome.lopend { color: var(--series-1); }
+.outcome.groen { color: var(--status-good); }
+.outcome.rood { color: var(--status-critical); }
+.outcome.niet-uitgevoerd { color: var(--text-muted); font-style: italic; }
+
+.type-pill {
+  font-size: 10px;
+  padding: 2px 7px;
+  border-radius: 999px;
+  border: 1px solid var(--gridline);
+  color: var(--text-secondary);
+}

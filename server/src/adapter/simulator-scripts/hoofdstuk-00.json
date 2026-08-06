@@ -1,0 +1,27 @@
+{
+  "id": "00",
+  "stappen": [
+    { "nr": 1, "cli": "ci/pipeline-microservice.sh payment payment-api", "uitkomst": "groen", "bijzonderheden": "Tests run: 9" },
+    { "nr": 2, "cli": "ci/pipeline-microservice.sh payment payment-api", "uitkomst": "groen", "bijzonderheden": "Tests run: 4" },
+    { "nr": 3, "cli": "ci/pipeline-microservice.sh payment payment-api", "uitkomst": "groen", "bijzonderheden": "payment-api:1.0.0" },
+    { "nr": 4, "cli": "ci/pipeline-ci.sh payment 1.0.0", "uitkomst": "groen", "bijzonderheden": "provider, geen buren nodig in deze omgeving" },
+    { "nr": 5, "cli": "ci/pipeline-ci.sh payment 1.0.0", "uitkomst": "groen", "bijzonderheden": "CI-omgeving opgeruimd" },
+    { "nr": 6, "cli": "ci/pipeline-test.sh payment 1.0.0", "uitkomst": "groen", "bijzonderheden": "CI was groen" },
+    { "nr": 7, "cli": "ci/pipeline-test.sh payment 1.0.0", "uitkomst": "groen", "bijzonderheden": "Tests run: 3" },
+    { "nr": 8, "cli": "ci/pipeline-acceptatie.sh payment 1.0.0", "uitkomst": "groen", "bijzonderheden": "Test was groen" },
+    { "nr": 9, "cli": "ci/pipeline-acceptatie.sh payment 1.0.0", "uitkomst": "groen", "bijzonderheden": "payment 1.0.0 staat op Acceptatie" },
+
+    { "nr": 10, "cli": "ci/pipeline-microservice.sh order order-api", "uitkomst": "groen", "bijzonderheden": "Tests run: 11" },
+    { "nr": 11, "cli": "ci/pipeline-microservice.sh order order-api", "uitkomst": "groen", "bijzonderheden": "@MockitoBean PaymentClient — het antwoord van de buur is zelf voorgeschreven" },
+    { "nr": 12, "cli": "ci/pipeline-microservice.sh order order-api", "uitkomst": "groen", "bijzonderheden": "order-api:1.0.0" },
+    { "nr": 13, "cli": "ci/pipeline-ci.sh order 1.0.0", "uitkomst": "groen", "bijzonderheden": "deelsystemen/order/stub-handgeschreven/ — dekt alleen het gelukkige pad" },
+    { "nr": 14, "cli": "ci/pipeline-ci.sh order 1.0.0", "uitkomst": "groen", "bijzonderheden": "CI-omgeving opgeruimd" },
+    { "nr": 15, "cli": "ci/pipeline-test.sh order 1.0.0", "uitkomst": "groen", "bijzonderheden": "CI was groen" },
+    { "nr": 16, "cli": "ci/pipeline-test.sh order 1.0.0", "uitkomst": "groen", "bijzonderheden": "Tests run: 3" },
+    { "nr": 17, "cli": "ci/pipeline-acceptatie.sh order 1.0.0", "uitkomst": "groen", "bijzonderheden": "Test was groen" },
+    { "nr": 18, "cli": "ci/pipeline-acceptatie.sh order 1.0.0", "uitkomst": "groen", "bijzonderheden": "order 1.0.0 staat op Acceptatie" },
+
+    { "nr": 19, "cli": "ci/pipeline-gebruikersflows.sh acceptatie", "uitkomst": "groen", "bijzonderheden": "order en payment staan beide op Acceptatie" },
+    { "nr": 20, "cli": "ci/pipeline-gebruikersflows.sh acceptatie", "uitkomst": "groen", "bijzonderheden": "Tests run: 1 — het schema van de grens komt in geen enkele stap voor" }
+  ]
+}

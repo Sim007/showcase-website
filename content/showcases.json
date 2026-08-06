@@ -1,0 +1,12 @@
+[
+  { "id": "00", "titel": "Startsituatie", "beschrijving": "Hoe het gaat zonder contracttesten — alles groen, maar niets toetst de grens.", "status": "werkt" },
+  { "id": "01", "titel": "Basis (API)", "beschrijving": "Hoe het gaat mét contracttesten — Order → Payment, REST, spec-first via Apicurio.", "status": "werkt" },
+  { "id": "02", "titel": "Wijziging zonder breuk", "beschrijving": "Een additieve wijziging, v1.1.0, naast de bestaande versie.", "status": "binnenkort" },
+  { "id": "03", "titel": "Breaking wijziging", "beschrijving": "Twee majors naast elkaar in dezelfde runtime.", "status": "binnenkort" },
+  { "id": "04", "titel": "Acceptatie", "beschrijving": "De gebruikersflow over de volledige keten.", "status": "binnenkort" },
+  { "id": "05", "titel": "Sunset", "beschrijving": "Een oude major netjes uit de runtime halen.", "status": "binnenkort" },
+  { "id": "06", "titel": "Async", "beschrijving": "Payment → Notification, via AsyncAPI.", "status": "binnenkort" },
+  { "id": "07", "titel": "SOAP", "beschrijving": "Een externe betaalprovider, WSDL/XSD.", "status": "binnenkort" },
+  { "id": "08", "titel": "Frontend binnen een deelsysteem", "beschrijving": "Angular tegen zijn eigen backend.", "status": "binnenkort" },
+  { "id": "09", "titel": "Frontend in shell", "beschrijving": "Shell tegen een remote module-API.", "status": "binnenkort" }
+]
