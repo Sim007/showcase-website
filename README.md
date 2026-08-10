@@ -33,6 +33,16 @@ images uit GitHub Container Registry (`ghcr.io/sim007/showcase-website/server` e
 TAG=first-mvp docker compose -f docker-compose.release.yml up
 ```
 
+Dat gaat uit van een lokale clone van deze repo. Zonder clone kan `docker compose` het
+bestand rechtstreeks van GitHub halen, voor dezelfde tag als de images:
+
+```sh
+TAG=first-mvp docker compose -f "https://github.com/Sim007/showcase-website.git#first-mvp:docker-compose.release.yml" up
+```
+
+Dat vereist wel git lokaal geïnstalleerd — `docker compose` kloont de repo op de achtergrond
+om het bestand op te halen.
+
 Zonder `TAG` wordt `first-mvp` gebruikt. Website en API draaien op dezelfde poorten als
 hierboven.
 
