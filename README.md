@@ -33,15 +33,28 @@ images uit GitHub Container Registry (`ghcr.io/sim007/showcase-website/server` e
 TAG=first-mvp docker compose -f docker-compose.release.yml up
 ```
 
-Dat gaat uit van een lokale clone van deze repo. Zonder clone kan `docker compose` het
-bestand rechtstreeks van GitHub halen, voor dezelfde tag als de images:
+Dat gaat uit van een lokale clone van deze repo. Zonder clone: haal het bestand op van
+GitHub en draai het lokaal, met dezelfde tag als de images.
 
 ```sh
-TAG=first-mvp docker compose -f "https://github.com/Sim007/showcase-website.git#first-mvp:docker-compose.release.yml" up
+curl -L -o docker-compose.release.yml \
+  https://raw.githubusercontent.com/Sim007/showcase-website/first-mvp/docker-compose.release.yml
+TAG=first-mvp docker compose -f docker-compose.release.yml up
 ```
 
-Dat vereist wel git lokaal geïnstalleerd — `docker compose` kloont de repo op de achtergrond
-om het bestand op te halen.
+PowerShell:
+
+```powershell
+Invoke-WebRequest https://raw.githubusercontent.com/Sim007/showcase-website/first-mvp/docker-compose.release.yml -OutFile docker-compose.release.yml
+$env:TAG = "first-mvp"
+docker compose -f docker-compose.release.yml up
+```
+
+Nieuwere versies van Docker Compose kunnen het bestand ook rechtstreeks uit een git-URL
+laden (`-f "https://github.com/<repo>.git#<tag>:<pad>"`, zonder eerst te downloaden), maar
+dat vereist een recente Compose-versie — werkt die niet, dan geeft Compose "file not found"
+omdat hij de hele URL als een letterlijke bestandsnaam behandelt. De download-aanpak hierboven
+werkt op elke versie.
 
 Zonder `TAG` wordt `first-mvp` gebruikt. Website en API draaien op dezelfde poorten als
 hierboven.
