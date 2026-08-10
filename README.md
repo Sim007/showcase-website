@@ -58,6 +58,11 @@ dat vereist een recente Compose-versie — werkt die niet, dan geeft Compose "fi
 omdat hij de hele URL als een letterlijke bestandsnaam behandelt. De download-aanpak hierboven
 werkt op elke versie.
 
+Deze route draait de content die in de image gebakken is (`content/intro.md`,
+`content/showcases.json`) — geen volume-mount naar een lokale `content`-map, want die is er
+zonder clone niet. Wil je content bewerken zonder rebuilden, gebruik dan de lokale-build
+route ("Starten" hierboven) met een volledige clone.
+
 Zonder `TAG` wordt `first-mvp` gebruikt. Website en API draaien op dezelfde poorten als
 hierboven.
 
