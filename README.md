@@ -23,6 +23,26 @@ docker compose up --build
 - Website: http://localhost:5173
 - API/websocket: http://localhost:4000
 
+## Draaien vanaf een gepubliceerde image-tag
+
+Voor een showcase zonder lokale build: `docker-compose.release.yml` gebruikt kant-en-klare
+images uit GitHub Container Registry (`ghcr.io/sim007/showcase-website/server` en
+`.../client`), getagd met de git-tag waaruit ze gebouwd zijn.
+
+```sh
+TAG=first-mvp docker compose -f docker-compose.release.yml up
+```
+
+Zonder `TAG` wordt `first-mvp` gebruikt. Website en API draaien op dezelfde poorten als
+hierboven.
+
+## Nieuwe imagetag publiceren
+
+Via GitHub Actions → **Publish Docker images** → *Run workflow*, met de gewenste git-tag als
+input (bv. `first-mvp`). De workflow checkt die tag uit en bouwt en publiceert de server- en
+client-image met exact diezelfde tag — de sources en de images horen dus altijd bij elkaar.
+De tag moet al bestaan in de repo (`git tag`).
+
 ## Bewerken zonder rebuilden
 
 - `content/intro.md` — de tekst op de landingspagina
