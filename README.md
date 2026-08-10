@@ -34,18 +34,20 @@ TAG=first-mvp docker compose -f docker-compose.release.yml up
 ```
 
 Dat gaat uit van een lokale clone van deze repo. Zonder clone: haal het bestand op van
-GitHub en draai het lokaal, met dezelfde tag als de images.
+GitHub en draai het lokaal. Let op: `docker-compose.release.yml` is generieke tooling die de
+tag als parameter krijgt — het bestand zelf staat alleen op `master`, niet op elke
+applicatie-tag, dus haal het van `master` en geef de gewenste imagetag apart mee via `TAG`.
 
 ```sh
 curl -L -o docker-compose.release.yml \
-  https://raw.githubusercontent.com/Sim007/showcase-website/first-mvp/docker-compose.release.yml
+  https://raw.githubusercontent.com/Sim007/showcase-website/master/docker-compose.release.yml
 TAG=first-mvp docker compose -f docker-compose.release.yml up
 ```
 
 PowerShell:
 
 ```powershell
-Invoke-WebRequest https://raw.githubusercontent.com/Sim007/showcase-website/first-mvp/docker-compose.release.yml -OutFile docker-compose.release.yml
+Invoke-WebRequest https://raw.githubusercontent.com/Sim007/showcase-website/master/docker-compose.release.yml -OutFile docker-compose.release.yml
 $env:TAG = "first-mvp"
 docker compose -f docker-compose.release.yml up
 ```
