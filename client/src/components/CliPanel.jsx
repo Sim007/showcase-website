@@ -28,6 +28,9 @@ export default function CliPanel({ steps }) {
               <span className="prompt">$ </span>
               {step.cli}
             </div>
+            {(step.cliRegels || []).map((regel, i) => (
+              <div className="line" key={i}>{regel}</div>
+            ))}
             {step.uitkomst !== 'lopend' && (
               <div className={`line result-${step.uitkomst}`}>
                 {step.uitkomst === 'groen' ? '✓' : '✕'} {step.stap} — {step.bijzonderheden}

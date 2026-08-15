@@ -5,16 +5,26 @@ import { DEELSYSTEEM_LABELS } from '../statusMeta.js';
 import PipelineGraph from '../components/PipelineGraph.jsx';
 import CliPanel from '../components/CliPanel.jsx';
 
+const OPGESLAGEN_VARIANTEN = [
+  { key: 'voltooid', label: 'opgeslagen: voltooid' },
+  { key: 'gestopt', label: 'opgeslagen: gestopt' },
+  { key: 'midden', label: 'opgeslagen: midden' },
+];
+
 export default function Pipeline() {
   const { id } = useParams();
-  const { dataset, steps, deelsysteemStatussen, error, connected, running, hoofdstuk, start, reset } = usePipelineRun(id);
+  const [bron, setBron] = useState('live');
+  const opgeslagenPad = bron === 'live' ? undefined : `/opgeslagen/${bron}.json`;
+  const { dataset, steps, deelsysteemStatussen, error, connected, running, scenarioId, start, reset } = usePipelineRun(id, {
+    bron: bron === 'live' ? 'live' : 'opgeslagen',
+    opgeslagenPad,
+  });
   const [uitgeschakeld, setUitgeschakeld] = useState(() => new Set());
 
   const deelsystemen = useMemo(() => {
-    if (!dataset) return [];
-    const set = new Set(dataset.stappen.map((s) => s.deelsysteem).filter((d) => d !== 'keten'));
+    const set = new Set(steps.map((s) => s.deelsysteem).filter((d) => d !== 'keten'));
     return [...set];
-  }, [dataset]);
+  }, [steps]);
 
   const zichtbareSteps = useMemo(
     () => steps.filter((s) => !uitgeschakeld.has(s.deelsysteem)),
@@ -39,15 +49,21 @@ export default function Pipeline() {
   }
   if (!dataset) return <div className="page"><p>Laden...</p></div>;
 
-  const runningThisChapter = running && hoofdstuk === id;
-  const runningOtherChapter = running && hoofdstuk !== id;
+  const runningThisChapter = running && scenarioId === id;
+  const runningOtherChapter = running && scenarioId !== id;
 
   return (
     <div className="page pipeline-page">
       <div className="top-nav">
         <Link className="brand" to="/">← showcase-cbt</Link>
+        <select value={bron} onChange={(e) => setBron(e.target.value)} style={{ fontSize: 12 }}>
+          <option value="live">live</option>
+          {OPGESLAGEN_VARIANTEN.map((v) => (
+            <option key={v.key} value={v.key}>{v.label}</option>
+          ))}
+        </select>
         <span style={{ fontSize: 12, color: 'var(--text-muted)' }}>
-          {connected ? 'verbonden' : 'geen verbinding met de server'}
+          {connected ? 'verbonden met showcase-CBT' : 'niet verbonden met showcase-CBT'}
         </span>
       </div>
 

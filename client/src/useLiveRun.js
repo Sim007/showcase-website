@@ -1,71 +1,59 @@
 import { useEffect, useRef, useState } from 'react';
-import { WS_URL } from './api.js';
+import { CBT_BASE } from './api.js';
+import { initState, reduceerBericht, isGeeindigdMetStop } from './contract/berichtReducer.js';
+import { maakLiveBron } from './contract/eventSourceBron.js';
+import { maakOpgeslagenBron } from './contract/opgeslagenBron.js';
 
-function gestopteDeelsystemenUit(stappen) {
-  const set = new Set();
-  for (const s of stappen) if (s.uitkomst === 'rood') set.add(s.deelsysteem);
-  return set;
-}
-
-// Tracks live events for one pipeline run over a shared websocket.
-// `stappen` is keyed by stap-nr so start/finish updates upsert in place.
-// `gestopteDeelsystemen` komt uit het expliciete stopsignaal van de stream
-// (deelsysteem-gestopt), niet uit eigen kleur-interpretatie — bij een
-// resync (state-bericht) wordt het wel afgeleid uit de laatst bekende
-// uitkomsten, omdat losse stopsignalen dan niet meer te herhalen zijn.
-export function useLiveRun() {
+// Eén consument voor beide modi: dezelfde validatie (schema.js), dezelfde
+// vertaling (vertaal.js) en dezelfde reducer (berichtReducer.js). Het enige
+// verschil zit aan de invoerkant — een echte EventSource, of het terugspelen
+// van een eerder vastgelegde stream uit een bestand. Zie
+// verkenning-EventSource.md voor waarom er hier geen tweede databronvorm en
+// geen vertaling-tussen-twee-vormen meer nodig is.
+//
+// "Verbonden" betekent hier expliciet verbonden met showcase-CBT — in
+// opgeslagen-modus is dat nooit waar, ook al loopt de plaat gewoon door
+// (usecases-showcase-website.md, "Twee modi": de indicator ís het onderscheid
+// tussen live en opgeslagen).
+export function useLiveRun({ bron = 'live', opgeslagenPad } = {}) {
+  const [state, setState] = useState(initState());
   const [connected, setConnected] = useState(false);
-  const [running, setRunning] = useState(false);
-  const [hoofdstuk, setHoofdstuk] = useState(null);
-  const [stappen, setStappen] = useState({});
-  const [gestopteDeelsystemen, setGestopteDeelsystemen] = useState(new Set());
-  const socketRef = useRef(null);
+  const bronRef = useRef(null);
 
   useEffect(() => {
-    const socket = new WebSocket(WS_URL);
-    socketRef.current = socket;
+    setState(initState());
+    setConnected(false);
 
-    socket.onopen = () => setConnected(true);
-    socket.onclose = () => setConnected(false);
+    const onBericht = (bericht) => setState((s) => reduceerBericht(s, bericht));
 
-    socket.onmessage = (raw) => {
-      const msg = JSON.parse(raw.data);
-      if (msg.type === 'state') {
-        setRunning(msg.running);
-        setHoofdstuk(msg.state.hoofdstuk);
-        const map = {};
-        for (const s of msg.state.stappen) map[s.nr] = s;
-        setStappen(map);
-        setGestopteDeelsystemen(gestopteDeelsystemenUit(msg.state.stappen));
-      } else if (msg.type === 'run-gestart') {
-        setRunning(true);
-        setHoofdstuk(msg.hoofdstuk);
-        setStappen({});
-        setGestopteDeelsystemen(new Set());
-      } else if (msg.type === 'stap-gestart' || msg.type === 'stap-beeindigd') {
-        setStappen((prev) => ({ ...prev, [msg.stap.nr]: msg.stap }));
-      } else if (msg.type === 'deelsysteem-gestopt') {
-        setGestopteDeelsystemen((prev) => new Set(prev).add(msg.deelsysteem));
-      } else if (msg.type === 'run-beeindigd') {
-        setRunning(false);
-      } else if (msg.type === 'reset') {
-        setRunning(false);
-        setHoofdstuk(null);
-        setStappen({});
-        setGestopteDeelsystemen(new Set());
-      }
-    };
+    const actieveBron =
+      bron === 'opgeslagen'
+        ? maakOpgeslagenBron({ pad: opgeslagenPad, onBericht })
+        : maakLiveBron({ apiBase: CBT_BASE, onBericht, onOpen: () => setConnected(true), onClose: () => setConnected(false) });
 
-    return () => socket.close();
-  }, []);
+    bronRef.current = actieveBron;
+    return () => actieveBron.stop();
+  }, [bron, opgeslagenPad]);
 
-  function start(id) {
-    socketRef.current?.send(JSON.stringify({ type: 'start', hoofdstuk: id }));
+  function start(scenarioId) {
+    return bronRef.current?.start(scenarioId);
   }
 
   function reset() {
-    socketRef.current?.send(JSON.stringify({ type: 'reset' }));
+    bronRef.current?.stop();
+    setState(initState());
   }
 
-  return { connected, running, hoofdstuk, stappen, gestopteDeelsystemen, start, reset };
+  return {
+    connected,
+    running: state.running,
+    scenarioId: state.scenarioId,
+    stappen: state.stappen,
+    cliRegels: state.cliRegels,
+    reden: state.reden,
+    gestoptBijStap: state.gestoptBijStap,
+    runGestopt: isGeeindigdMetStop(state.reden),
+    start,
+    reset,
+  };
 }

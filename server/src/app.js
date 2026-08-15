@@ -3,24 +3,17 @@ import cors from 'cors';
 import fs from 'node:fs';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
-import { listScenarios, getScenario } from './adapter/scenarioStore.js';
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 export const CONTENT_DIR = path.join(__dirname, '..', '..', 'content');
 
+// De eigen server levert alleen nog content die niet uit het contract komt
+// (beheerd door de testconsultant). Scenario's en runs komen rechtstreeks
+// van showcase-CBT of de stub — geen proxy hier, zie context.md
+// "Architectuurprincipe showcase-website".
 export function createApp() {
   const app = express();
   app.use(cors());
-
-  app.get('/api/hoofdstukken', (req, res) => {
-    res.json(listScenarios());
-  });
-
-  app.get('/api/hoofdstukken/:id', (req, res) => {
-    const data = getScenario(req.params.id);
-    if (!data) return res.status(404).json({ error: 'onbekend hoofdstuk' });
-    res.json(data);
-  });
 
   app.get('/api/content/intro', (req, res) => {
     const file = path.join(CONTENT_DIR, 'intro.md');

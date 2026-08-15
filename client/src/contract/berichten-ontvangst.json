@@ -1,0 +1,276 @@
+{
+  "components": {
+    "schemas": {
+      "Soort": {
+        "type": "string",
+        "description": "Onderscheidt de berichtsoorten binnen één stroom. Kleine letters met streepjes, gelijk aan de naam van het bericht.\n",
+        "example": "stap-afgerond"
+      },
+      "Tijd": {
+        "type": "string",
+        "format": "date-time",
+        "description": "Wanneer het feit zich voordeed, bij showcase-CBT gemeten.",
+        "example": "2026-08-06T09:13:07Z"
+      },
+      "RunId": {
+        "type": "string",
+        "pattern": "^run-[0-9a-f]{6}$",
+        "example": "run-7c41a9"
+      },
+      "ScenarioId": {
+        "type": "string",
+        "pattern": "^[0-9]{2}$",
+        "example": "01"
+      },
+      "StapNummer": {
+        "type": "integer",
+        "minimum": 1,
+        "description": "Verwijst naar het nummer van een stap uit scenario-api.",
+        "example": 3
+      },
+      "Uitkomst": {
+        "type": "string",
+        "description": "Alleen deze twee. Nadrukkelijk geen kleur: groen en rood zijn presentatie, en presentatie is een afleiding — de aanroeper bepaalt zelf welke kleur bij geslaagd of mislukt hoort. Zou showcase-CBT hier \"groen\" sturen, dan besliste hij mee over het beeld, en dat is de kant die volgens context.md niet afleidt.\nEen stap die nooit gestart is heeft geen uitkomst en levert geen bericht; dat hij ontbreekt is wat \"niet uitgevoerd\" betekent.\n",
+        "example": "geslaagd"
+      },
+      "Run": {
+        "type": "object",
+        "required": [
+          "runId",
+          "scenarioId",
+          "gestartOp"
+        ],
+        "properties": {
+          "runId": {
+            "$ref": "#/components/schemas/RunId"
+          },
+          "scenarioId": {
+            "$ref": "#/components/schemas/ScenarioId"
+          },
+          "gestartOp": {
+            "$ref": "#/components/schemas/Tijd"
+          }
+        }
+      },
+      "AfgerondeStap": {
+        "type": "object",
+        "required": [
+          "stapNummer",
+          "uitkomst"
+        ],
+        "properties": {
+          "stapNummer": {
+            "$ref": "#/components/schemas/StapNummer"
+          },
+          "uitkomst": {
+            "$ref": "#/components/schemas/Uitkomst"
+          },
+          "bijzonderheden": {
+            "type": "string",
+            "example": "1632 generated, 1632 passed"
+          }
+        }
+      },
+      "MomentopnamePayload": {
+        "type": "object",
+        "description": "Bevat bewust geen cli-uitvoer. Die draagt geen betekenis, en een late kijker zou anders op een grote inhaalslag wachten voordat hij iets ziet.\n",
+        "required": [
+          "soort",
+          "tijd",
+          "run",
+          "afgerondeStappen"
+        ],
+        "properties": {
+          "soort": {
+            "$ref": "#/components/schemas/Soort"
+          },
+          "tijd": {
+            "$ref": "#/components/schemas/Tijd"
+          },
+          "run": {
+            "description": "Null wanneer er geen run loopt. Zwijgen zou dubbelzinnig zijn.",
+            "oneOf": [
+              {
+                "$ref": "#/components/schemas/Run"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "afgerondeStappen": {
+            "type": "array",
+            "description": "In de volgorde waarin ze zijn afgerond.",
+            "items": {
+              "$ref": "#/components/schemas/AfgerondeStap"
+            }
+          },
+          "lopendeStap": {
+            "$ref": "#/components/schemas/StapNummer"
+          }
+        }
+      },
+      "RunGestartPayload": {
+        "type": "object",
+        "required": [
+          "soort",
+          "tijd",
+          "runId",
+          "scenarioId"
+        ],
+        "properties": {
+          "soort": {
+            "$ref": "#/components/schemas/Soort"
+          },
+          "tijd": {
+            "$ref": "#/components/schemas/Tijd"
+          },
+          "runId": {
+            "$ref": "#/components/schemas/RunId"
+          },
+          "scenarioId": {
+            "$ref": "#/components/schemas/ScenarioId"
+          }
+        }
+      },
+      "StapGestartPayload": {
+        "type": "object",
+        "required": [
+          "soort",
+          "tijd",
+          "runId",
+          "stapNummer"
+        ],
+        "properties": {
+          "soort": {
+            "$ref": "#/components/schemas/Soort"
+          },
+          "tijd": {
+            "$ref": "#/components/schemas/Tijd"
+          },
+          "runId": {
+            "$ref": "#/components/schemas/RunId"
+          },
+          "stapNummer": {
+            "$ref": "#/components/schemas/StapNummer"
+          }
+        }
+      },
+      "StapAfgerondPayload": {
+        "type": "object",
+        "required": [
+          "soort",
+          "tijd",
+          "runId",
+          "stapNummer",
+          "uitkomst"
+        ],
+        "properties": {
+          "soort": {
+            "$ref": "#/components/schemas/Soort"
+          },
+          "tijd": {
+            "$ref": "#/components/schemas/Tijd"
+          },
+          "runId": {
+            "$ref": "#/components/schemas/RunId"
+          },
+          "stapNummer": {
+            "$ref": "#/components/schemas/StapNummer"
+          },
+          "uitkomst": {
+            "$ref": "#/components/schemas/Uitkomst"
+          },
+          "bijzonderheden": {
+            "type": "string",
+            "description": "Wat er te melden was, zoals het aantal gedraaide gevallen.",
+            "example": "1632 generated, 1632 passed"
+          }
+        }
+      },
+      "CliUitvoerPayload": {
+        "type": "object",
+        "required": [
+          "soort",
+          "tijd",
+          "runId",
+          "stapNummer",
+          "regel"
+        ],
+        "properties": {
+          "soort": {
+            "$ref": "#/components/schemas/Soort"
+          },
+          "tijd": {
+            "$ref": "#/components/schemas/Tijd"
+          },
+          "runId": {
+            "$ref": "#/components/schemas/RunId"
+          },
+          "stapNummer": {
+            "$ref": "#/components/schemas/StapNummer"
+          },
+          "regel": {
+            "type": "string",
+            "description": "Eén regel, zonder regeleinde.",
+            "example": "  contractverificatie, provider                ok"
+          }
+        }
+      },
+      "RunAfgerondPayload": {
+        "type": "object",
+        "required": [
+          "soort",
+          "tijd",
+          "runId",
+          "reden"
+        ],
+        "properties": {
+          "soort": {
+            "$ref": "#/components/schemas/Soort"
+          },
+          "tijd": {
+            "$ref": "#/components/schemas/Tijd"
+          },
+          "runId": {
+            "$ref": "#/components/schemas/RunId"
+          },
+          "reden": {
+            "type": "string",
+            "description": "Waarom de run ophield, niet hoe hij afliep. Voltooid betekent dat alle stappen aan bod zijn geweest; gestopt dat een stap mislukte en de pipeline daar ophield; afgebroken dat er om afbreken is gevraagd. Wat dat betekent voor een deelsysteem of voor het rapport, leidt de aanroeper zelf af.\n",
+            "example": "voltooid"
+          },
+          "gestoptBijStap": {
+            "type": "integer",
+            "minimum": 1,
+            "description": "Het nummer van de stap die mislukte en daarmee de run stopte. Verplicht bij reden gestopt, afwezig bij voltooid en afgebroken.\nDit stond er eerst niet, omdat het af te leiden viel uit de laatste stap-afgerond met uitkomst mislukt. Dat klopt — de eerste mislukking stopt de run, dus er is er nooit meer dan één — maar die zekerheid stond alleen in proza. Een aanname die je uit een beschrijving moet destilleren is de zwakke afspraak die deze showcase juist afwijst, dus staat het er nu als feit.\n",
+            "example": 3
+          }
+        },
+        "if": {
+          "required": [
+            "reden"
+          ],
+          "properties": {
+            "reden": {
+              "const": "gestopt"
+            }
+          }
+        },
+        "then": {
+          "required": [
+            "gestoptBijStap"
+          ]
+        }
+      }
+    }
+  },
+  "soortIndex": {
+    "momentopname": "MomentopnamePayload",
+    "run-gestart": "RunGestartPayload",
+    "stap-gestart": "StapGestartPayload",
+    "stap-afgerond": "StapAfgerondPayload",
+    "cli-uitvoer": "CliUitvoerPayload",
+    "run-afgerond": "RunAfgerondPayload"
+  }
+}
