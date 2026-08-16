@@ -11,7 +11,7 @@ import { deriveDeelsysteemStatus, deelsysteemIsGestopt } from './deriveDeelsyste
 // stamdata en wordt hier gejoined, niet uit tekst geparsed.
 //
 // De verbinding zelf zit niet hier maar in LiveRunProvider: één per sessie,
-// zodat navigeren tussen plaat en rapport de lopende run niet weggooit.
+// zodat navigeren tussen dashboard en rapport de lopende run niet weggooit.
 export function usePipelineRun(id) {
   const [dataset, setDataset] = useState(null);
   const [error, setError] = useState(null);

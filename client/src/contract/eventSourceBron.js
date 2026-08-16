@@ -6,7 +6,7 @@ import { valideerBericht } from './schema.js';
 // **Geen automatische herverbinding.** EventSource probeert het uit zichzelf
 // na een seconde of drie opnieuw, en dat is precies het gedrag dat hier niet
 // deugt: de berichten uit de tussentijd komen nooit meer, dus je krijgt een
-// plaat met gaten die er compleet uitziet. De stream is geen buffer. Valt de
+// dashboard met gaten dat er compleet uitziet. De stream is geen buffer. Valt de
 // verbinding weg, dan zeggen we dat, laten we staan wat er binnenkwam, en is
 // opnieuw beginnen de enige echte herstelactie — die hoort bij de mens achter
 // de laptop, niet bij de browser.

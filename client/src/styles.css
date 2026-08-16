@@ -270,6 +270,33 @@ a.ghost { text-decoration: none; display: inline-flex; align-items: center; }
   color: var(--text-secondary);
 }
 
+/* Bevroren dashboard: de verbinding is weg, dus alles wat de run laat zien is
+   "laatste bekende stand" en niets meer. Vergrijzen in plaats van losse
+   statussen omschrijven — een stap op "lopend" beweert dat er nú iets draait
+   en een wachtende stap dat hij nog aan de beurt komt; beide worden onwaar op
+   hetzelfde moment. Zo hoeft geen enkele status van betekenis te veranderen.
+
+   De melding zelf blijft juist wél scherp: die vertelt waaróm de rest dof is. */
+.bevroren-melding {
+  background: color-mix(in srgb, var(--status-critical) 10%, var(--surface-1));
+  border-color: color-mix(in srgb, var(--status-critical) 40%, transparent);
+  color: var(--text-primary);
+  font-weight: 600;
+}
+
+.bevroren .graph,
+.bevroren .cli-panel,
+.bevroren .report-table,
+.bevroren .deelsystemen-banner {
+  filter: grayscale(1);
+  opacity: 0.45;
+  transition: filter 0.2s ease, opacity 0.2s ease;
+}
+
+/* Niets meer aan te klikken in een bevroren beeld: de toggles zouden een
+   levendigheid suggereren die er niet is. */
+.bevroren .deelsystemen-banner { pointer-events: none; }
+
 .meta-row {
   display: flex;
   align-items: center;

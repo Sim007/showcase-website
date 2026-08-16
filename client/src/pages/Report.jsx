@@ -17,8 +17,13 @@ export default function Report() {
   }
   if (!dataset) return <div className="page"><p>Laden...</p></div>;
 
+  // Zelfde regel als op het dashboard: een weggevallen verbinding bevriest het
+  // beeld. Juist hier telt dat, want een tabel met uitkomsten leest als een
+  // afgerond verslag — sterker dan "we weten het niet".
+  const bevroren = verbindingWeg;
+
   return (
-    <div className="page">
+    <div className={`page${bevroren ? ' bevroren' : ''}`}>
       <div className="top-nav">
         <Link className="brand" to={`/scenario/${id}`}>← scenario {id}</Link>
         <span className={`verbinding ${status.klasse}`}>{status.tekst}</span>
@@ -30,6 +35,12 @@ export default function Report() {
           <p>{dataset.ondertitel}</p>
         </div>
       </div>
+
+      {bevroren && (
+        <div className="melding bevroren-melding">
+          Verbinding met showcase-CBT weggevallen — dit is de laatste bekende stand, geen afgerond rapport.
+        </div>
+      )}
 
       <ReportTable steps={steps} />
     </div>

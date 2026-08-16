@@ -34,13 +34,19 @@ niets te volgen), *verbinding met showcase-CBT weggevallen* (rood) en de opgesla
 Twee dingen over die verbinding, allebei met opzet:
 
 - **Er is er één per sessie.** Hij hoort in `client/src/LiveRunProvider.jsx`, boven de paginas,
-  niet in de pagina-hook. Anders verbreekt elke stap van plaat naar rapport de stream en begint
+  niet in de pagina-hook. Anders verbreekt elke stap van dashboard naar rapport de stream en begint
   de runstate leeg — een net afgeronde run stond dan op het rapport weer volledig op "wachtend".
 - **Er wordt niet automatisch herverbonden.** EventSource doet dat standaard na een seconde of
-  drie; dan mis je de berichten uit de tussentijd en krijg je een plaat met gaten die er compleet
-  uitziet. Valt de verbinding weg, dan zegt de indicator dat, blijft staan wat er binnenkwam, en
-  gaat de knop terug naar start. Opnieuw beginnen is de herstelactie, en die hoort bij de mens.
-  Zie `client/src/contract/eventSourceBron.js`.
+  drie; dan mis je de berichten uit de tussentijd en krijg je een dashboard met gaten dat er
+  compleet uitziet. Valt de verbinding weg, dan **bevriest het dashboard**: het vergrijst, er komt
+  een regel boven met "laatste bekende stand", en de knop gaat terug naar start. Opnieuw beginnen
+  is de herstelactie, en die hoort bij de mens. Zie `client/src/contract/eventSourceBron.js`.
+
+  Bevriezen in plaats van losse statussen herinterpreteren is een bewuste keuze: een stap op
+  `lopend` is geen ontbrekend gegeven maar een actieve bewering dat er iets draait, en de wachtende
+  stappen beweren dat ze nog aan de beurt komen. Beide worden onwaar op hetzelfde moment. Door het
+  hele beeld te bevriezen hoeft geen enkele status van betekenis te veranderen: dit was de stand,
+  en verder weten we het niet.
 
 Dat de stream *tussen* runs dichtgaat is wél tijdelijk: dat vervalt zodra showcase-CBT hem
 openhoudt.

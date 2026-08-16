@@ -57,8 +57,16 @@ export default function Pipeline() {
   const status = verbindingsStatus({ bron, connected, verbindingWeg });
   const verkeerdeStamdata = dataset.id !== id;
 
+  // Valt de verbinding weg, dan bevriest het hele dashboard in plaats van dat
+  // we losse statussen gaan herinterpreteren. Een stap op "lopend" is geen
+  // ontbrekend gegeven maar een bewering dat er nú iets draait, en de wachtende
+  // stappen beweren dat ze nog aan de beurt komen — allebei worden ze onwaar op
+  // hetzelfde moment. Bevriezen zegt precies wat er aan de hand is: dit was de
+  // stand, en verder weten we het niet.
+  const bevroren = verbindingWeg;
+
   return (
-    <div className="page pipeline-page">
+    <div className={`page pipeline-page${bevroren ? ' bevroren' : ''}`}>
       <div className="top-nav">
         <Link className="brand" to="/">← showcase-cbt</Link>
         <select className="bron-select" value={bron} onChange={(e) => setBron(e.target.value)}>
@@ -126,6 +134,13 @@ export default function Pipeline() {
         <div className="melding">
           Er loopt een run voor scenario {scenarioId}, en hieronder staan de stappen van scenario {dataset.id}.
           Er kan er één tegelijk lopen, dus deze stappen blijven wachtend tot die run klaar is.
+        </div>
+      )}
+
+      {bevroren && (
+        <div className="melding bevroren-melding">
+          Verbinding met showcase-CBT weggevallen — hieronder staat de laatste bekende stand. Wat er daarna
+          gebeurde weten we niet. Start opnieuw om verder te kijken.
         </div>
       )}
 

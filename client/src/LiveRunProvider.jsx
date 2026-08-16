@@ -13,9 +13,9 @@ export const OPGESLAGEN_VARIANTEN = [
 const LiveRunContext = createContext(null);
 
 // Eén verbinding per sessie, en dus één plek waar hij hoort: hier, boven de
-// paginas. Stond hij in de pagina-hook, dan verbrak elke stap van plaat naar
-// rapport de stream en begon de runstate leeg — gemeten: een net afgeronde run
-// stond op het rapport weer volledig op "wachtend".
+// paginas. Stond hij in de pagina-hook, dan verbrak elke stap van dashboard
+// naar rapport de stream en begon de runstate leeg — gemeten: een net afgeronde
+// run stond op het rapport weer volledig op "wachtend".
 //
 // De bronkeuze (live of een opgeslagen opname) hoort om dezelfde reden hier:
 // het is een keuze voor de hele sessie, niet voor één pagina, en de verbinding
