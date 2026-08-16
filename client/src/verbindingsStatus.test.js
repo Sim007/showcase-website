@@ -14,4 +14,15 @@ describe('verbindingsStatus', () => {
     expect(verbindingsStatus({ bron: 'live', connected: false, verbindingWeg: true }).klasse).toBe('weg');
     expect(verbindingsStatus({ bron: 'live', connected: false, verbindingWeg: false }).klasse).toBe('gereed');
   });
+
+  it('noemt showcase-CBT niet "gereed" als de stamdata uit de lokale kopie kwam', () => {
+    const status = verbindingsStatus({
+      bron: 'live',
+      connected: false,
+      verbindingWeg: false,
+      stamdataUitLokaleKopie: true,
+    });
+    expect(status.klasse).toBe('weg');
+    expect(status.tekst).toContain('niet bereikbaar');
+  });
 });

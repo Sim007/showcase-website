@@ -51,9 +51,16 @@ Twee dingen over die verbinding, allebei met opzet:
 Dat de stream *tussen* runs dichtgaat is wél tijdelijk: dat vervalt zodra showcase-CBT hem
 openhoudt.
 
-**Let op:** zonder bereikbare showcase-CBT laadt de scenariopagina helemaal niet, ook niet in
-opgeslagen modus — de stamdata komt namelijk óók van showcase-CBT. Dat wringt met de NFR "altijd
-showbaar"; zie "Bekende aannames".
+**Stamdata wordt één keer opgehaald en vastgehouden** (`client/src/scenarioBron.js`), met een
+terugval op een meegeleverde kopie in `client/public/opgeslagen/` als showcase-CBT niet bereikbaar
+is. Twee dingen die daarmee opgelost zijn: doorlopen naar het rapport ná een weggevallen verbinding
+gaf eerst "kon scenario niet laden" in plaats van de bevroren stand, en de opgeslagen modus kon
+zonder showcase-CBT helemaal niet starten.
+
+Komt de stamdata uit die kopie, dan zegt de pagina dat, en zegt de indicator *showcase-CBT niet
+bereikbaar* in plaats van *gereed* — anders zou dat laatste een bewering zijn waar geen bewijs
+meer voor is. Er ligt alleen een kopie voor scenario 01; voor een scenario zonder kopie faalt de
+pagina zichtbaar, en dat is de bedoeling.
 
 ## Draaien vanaf een gepubliceerde image-tag
 
@@ -107,8 +114,8 @@ client naar een andere plek met `CBT_BASE`:
 CBT_BASE=http://showcase-cbt.lokaal:8090 TAG=first-mvp docker compose -f docker-compose.release.yml up
 ```
 
-Zonder een bereikbare showcase-CBT/stub op die plek laadt de scenariopagina niet — de stamdata
-komt daarvandaan. Zie de opmerking bij "Starten" hierboven.
+Zonder een bereikbare showcase-CBT/stub op die plek valt de scenariopagina terug op de
+meegeleverde stamdata-kopie (alleen scenario 01) en meldt dat. Zie "Starten" hierboven.
 
 ## Nieuwe imagetag publiceren
 
@@ -179,8 +186,7 @@ lokaal een schone `npm audit` verwachten heeft geen zin.
 - Geen dark mode, geen authenticatie — voor een lokale demo niet nodig.
 - Scenario-inhoud komt van showcase-CBT/de stub, niet van onszelf — zie "Nieuw scenario
   toevoegen" hierboven voor de huidige beperking daarvan.
-- **De opgeslagen modus is nog niet echt offline.** De opgenomen stream komt uit een bestand,
-  maar de stamdata waar die stream aan gekoppeld wordt (`GET /v1/scenarios/:id`) komt nog van
-  showcase-CBT. Zonder verbinding laadt de pagina dus niet, terwijl de NFR "altijd showbaar"
-  juist vraagt dat dit wél kan. `client/public/opgeslagen/scenario-01.json` ligt er al klaar
-  als offline stamdata; hij wordt alleen nog niet gebruikt. Nog te doen.
+- **De opgeslagen modus draait offline, maar alleen voor scenario 01.** Zowel de opgenomen stream
+  als de stamdata liggen er als bestand, dus de pagina werkt zonder showcase-CBT. Voor de andere
+  scenario's is er geen kopie. Er is bewust geen `scenario-00.json` aangemaakt: de stub levert
+  voor élk id de inhoud van 01, dus zo'n bestand zou scenario 01 zijn met "00" erboven.

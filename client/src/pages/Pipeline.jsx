@@ -10,7 +10,7 @@ import CliPanel from '../components/CliPanel.jsx';
 export default function Pipeline() {
   const { id } = useParams();
   const {
-    dataset, steps, deelsysteemStatussen, error,
+    dataset, steps, deelsysteemStatussen, error, stamdataUitLokaleKopie,
     bron, setBron, connected, verbindingWeg, running, scenarioId, start, reset,
   } = usePipelineRun(id);
   const [uitgeschakeld, setUitgeschakeld] = useState(() => new Set());
@@ -54,7 +54,7 @@ export default function Pipeline() {
 
   const runningThisScenario = running && scenarioId === dataset.id;
   const runningOtherScenario = running && scenarioId !== dataset.id;
-  const status = verbindingsStatus({ bron, connected, verbindingWeg });
+  const status = verbindingsStatus({ bron, connected, verbindingWeg, stamdataUitLokaleKopie });
   const verkeerdeStamdata = dataset.id !== id;
 
   // Valt de verbinding weg, dan bevriest het hele dashboard in plaats van dat
@@ -122,6 +122,13 @@ export default function Pipeline() {
           <span className="item" style={{ color: 'var(--text-muted)' }}>– niet uitgevoerd</span>
         </div>
       </div>
+
+      {stamdataUitLokaleKopie && (
+        <div className="melding">
+          showcase-CBT was niet bereikbaar; de stappen hieronder komen uit een meegeleverde kopie. Ze kloppen
+          met het scenario zoals het is opgehaald, maar zijn niet zojuist bij showcase-CBT gecontroleerd.
+        </div>
+      )}
 
       {verkeerdeStamdata && (
         <div className="melding">

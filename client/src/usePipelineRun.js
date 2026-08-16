@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useState } from 'react';
-import { fetchScenario } from './api.js';
+import { haalScenario, HERKOMST } from './scenarioBron.js';
 import { useLiveRun } from './LiveRunProvider.jsx';
 import { vertaalStap } from './contract/vertaal.js';
 import { deriveDeelsysteemStatus, deelsysteemIsGestopt } from './deriveDeelsysteemStatus.js';
@@ -14,14 +14,26 @@ import { deriveDeelsysteemStatus, deelsysteemIsGestopt } from './deriveDeelsyste
 // zodat navigeren tussen dashboard en rapport de lopende run niet weggooit.
 export function usePipelineRun(id) {
   const [dataset, setDataset] = useState(null);
+  const [herkomst, setHerkomst] = useState(null);
   const [error, setError] = useState(null);
   const live = useLiveRun();
   const { scenarioId, stappen, cliRegels, runGestopt } = live;
 
   useEffect(() => {
+    let actueel = true;
     setDataset(null);
+    setHerkomst(null);
     setError(null);
-    fetchScenario(id).then(setDataset).catch((e) => setError(e.message));
+    haalScenario(id)
+      .then(({ dataset: d, herkomst: h }) => {
+        if (!actueel) return;
+        setDataset(d);
+        setHerkomst(h);
+      })
+      .catch((e) => actueel && setError(e.message));
+    return () => {
+      actueel = false;
+    };
   }, [id]);
 
   // Koppel de stream aan de stamdata die we tónen, niet aan het id uit de URL.
@@ -56,5 +68,12 @@ export function usePipelineRun(id) {
     return map;
   }, [steps, liveVoorDitScenario, runGestopt]);
 
-  return { ...live, dataset, steps, deelsysteemStatussen, error };
+  return {
+    ...live,
+    dataset,
+    steps,
+    deelsysteemStatussen,
+    error,
+    stamdataUitLokaleKopie: herkomst === HERKOMST.lokaleKopie,
+  };
 }

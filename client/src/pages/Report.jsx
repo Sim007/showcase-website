@@ -5,8 +5,8 @@ import ReportTable from '../components/ReportTable.jsx';
 
 export default function Report() {
   const { id } = useParams();
-  const { dataset, steps, error, bron, connected, verbindingWeg } = usePipelineRun(id);
-  const status = verbindingsStatus({ bron, connected, verbindingWeg });
+  const { dataset, steps, error, bron, connected, verbindingWeg, stamdataUitLokaleKopie } = usePipelineRun(id);
+  const status = verbindingsStatus({ bron, connected, verbindingWeg, stamdataUitLokaleKopie });
 
   if (error) {
     return (
@@ -35,6 +35,12 @@ export default function Report() {
           <p>{dataset.ondertitel}</p>
         </div>
       </div>
+
+      {stamdataUitLokaleKopie && (
+        <div className="melding">
+          showcase-CBT was niet bereikbaar; de stappen hieronder komen uit een meegeleverde kopie.
+        </div>
+      )}
 
       {bevroren && (
         <div className="melding bevroren-melding">

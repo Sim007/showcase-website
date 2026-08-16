@@ -23,3 +23,13 @@ export async function fetchScenario(id) {
   if (!res.ok) throw new Error('kon scenario niet laden');
   return res.json();
 }
+
+// Meegeleverde kopie van de stamdata, voor wanneer showcase-CBT niet bereikbaar
+// is. Niet elk scenario heeft er een: er ligt alleen wat we ooit echt hebben
+// opgehaald, en een bestand verzinnen zou een scenario tonen dat niemand heeft
+// gemeten. Ontbreekt hij, dan hoort de pagina te falen en niet te doen alsof.
+export async function fetchLokaleScenarioKopie(id) {
+  const res = await fetch(`/opgeslagen/scenario-${id}.json`);
+  if (!res.ok) throw new Error('geen lokale kopie van dit scenario');
+  return res.json();
+}
