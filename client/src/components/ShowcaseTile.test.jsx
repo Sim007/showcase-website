@@ -7,10 +7,10 @@ const werktShowcase = { id: '01', titel: 'Basis (API)', beschrijving: 'Contractt
 const binnenkortShowcase = { id: '02', titel: 'Wijziging zonder breuk', beschrijving: 'Additief.', status: 'binnenkort' };
 
 describe('ShowcaseTile', () => {
-  it('links to the hoofdstuk route when status is werkt', () => {
+  it('links to the scenario route when status is werkt', () => {
     render(<ShowcaseTile showcase={werktShowcase} />, { wrapper: MemoryRouter });
     const link = screen.getByRole('link');
-    expect(link).toHaveAttribute('href', '/hoofdstuk/01');
+    expect(link).toHaveAttribute('href', '/scenario/01');
     expect(screen.getByText('● werkt')).toBeInTheDocument();
   });
 

@@ -9,7 +9,7 @@ export default function Report() {
   if (error) {
     return (
       <div className="page">
-        <p>Kon hoofdstuk {id} niet laden: {error}.</p>
+        <p>Kon scenario {id} niet laden: {error}.</p>
       </div>
     );
   }
@@ -18,7 +18,7 @@ export default function Report() {
   return (
     <div className="page">
       <div className="top-nav">
-        <Link className="brand" to={`/hoofdstuk/${id}`}>← hoofdstuk {id}</Link>
+        <Link className="brand" to={`/scenario/${id}`}>← scenario {id}</Link>
         <span style={{ fontSize: 12, color: 'var(--text-muted)' }}>
           {connected ? 'verbonden' : 'geen verbinding met de server'}
         </span>
@@ -26,7 +26,7 @@ export default function Report() {
 
       <div className="pipeline-header">
         <div>
-          <h1>Rapport — Hoofdstuk {dataset.id} — {dataset.titel}</h1>
+          <h1>Rapport — Scenario {dataset.id} — {dataset.titel}</h1>
           <p>{dataset.ondertitel}</p>
         </div>
       </div>

@@ -7,8 +7,8 @@ export default function App() {
   return (
     <Routes>
       <Route path="/" element={<Landing />} />
-      <Route path="/hoofdstuk/:id" element={<Pipeline />} />
-      <Route path="/hoofdstuk/:id/rapport" element={<Report />} />
+      <Route path="/scenario/:id" element={<Pipeline />} />
+      <Route path="/scenario/:id/rapport" element={<Report />} />
     </Routes>
   );
 }

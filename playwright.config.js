@@ -15,7 +15,7 @@ export default defineConfig({
     {
       command: 'npm run dev',
       cwd: './server',
-      url: 'http://localhost:4000/api/hoofdstukken',
+      url: 'http://localhost:4000/api/content/showcases',
       reuseExistingServer: !process.env.CI,
     },
     {

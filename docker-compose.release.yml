@@ -12,5 +12,6 @@ services:
       - "5173:5173"
     environment:
       - VITE_API_BASE=http://localhost:4000
+      - VITE_CBT_BASE=${CBT_BASE:-http://localhost:8090}
     depends_on:
       - server

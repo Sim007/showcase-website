@@ -12,13 +12,24 @@ const steps = [
 ];
 
 describe('PipelineGraph', () => {
-  it('renders one column header per omgeving that has steps, skipping empty ones', () => {
+  it('zonder omgevingen-prop: leidt kolommen af uit de stappen, lege omgevingen overgeslagen', () => {
     render(<PipelineGraph steps={steps} />);
     expect(screen.getByText('Code')).toBeInTheDocument();
     expect(screen.getByText('CI')).toBeInTheDocument();
     expect(screen.getByText('Acceptatie')).toBeInTheDocument();
     expect(screen.queryByText('Test')).not.toBeInTheDocument();
     expect(screen.queryByText('Keten')).not.toBeInTheDocument();
+  });
+
+  it('met omgevingen-prop: toont ook een omgeving zonder eigen stap in deze dataset', () => {
+    const omgevingen = [
+      { key: 'code', label: 'Code' },
+      { key: 'ci', label: 'CI' },
+      { key: 'test', label: 'Test' },
+      { key: 'acceptatie', label: 'Acceptatie' },
+    ];
+    render(<PipelineGraph steps={steps} omgevingen={omgevingen} />);
+    expect(screen.getByText('Test')).toBeInTheDocument();
   });
 
   it('renders one swimlane row per deelsysteem, in order of first appearance', () => {

@@ -1,5 +1,27 @@
 import { describe, it, expect } from 'vitest';
-import { deriveDeelsysteemStatus } from './deriveDeelsysteemStatus.js';
+import { deriveDeelsysteemStatus, deelsysteemIsGestopt } from './deriveDeelsysteemStatus.js';
+
+describe('deelsysteemIsGestopt', () => {
+  it('is onwaar zolang de run niet is opgehouden', () => {
+    const stappen = [{ uitkomst: 'groen' }, { uitkomst: 'rood' }];
+    expect(deelsysteemIsGestopt(stappen, false)).toBe(false);
+  });
+
+  it('is waar voor het deelsysteem waarvan een stap mislukte', () => {
+    const stappen = [{ uitkomst: 'groen' }, { uitkomst: 'groen' }, { uitkomst: 'rood' }];
+    expect(deelsysteemIsGestopt(stappen, true)).toBe(true);
+  });
+
+  it('is waar voor een deelsysteem dat door die mislukking nooit aan de beurt kwam', () => {
+    const stappen = [{ uitkomst: 'niet-uitgevoerd' }, { uitkomst: 'niet-uitgevoerd' }];
+    expect(deelsysteemIsGestopt(stappen, true)).toBe(true);
+  });
+
+  it('is onwaar als dit deelsysteem al zijn stappen groen had voordat de run ophield', () => {
+    const stappen = [{ uitkomst: 'groen' }, { uitkomst: 'groen' }];
+    expect(deelsysteemIsGestopt(stappen, true)).toBe(false);
+  });
+});
 
 describe('deriveDeelsysteemStatus', () => {
   it('is nog-niet-gestart als geen enkele stap iets anders dan wachtend is', () => {

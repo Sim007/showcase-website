@@ -4,7 +4,7 @@ export default function ShowcaseTile({ showcase }) {
   const clickable = showcase.status === 'werkt';
   const content = (
     <>
-      <div className="nr">Hoofdstuk {showcase.id}</div>
+      <div className="nr">Scenario {showcase.id}</div>
       <h3>{showcase.titel}</h3>
       <p>{showcase.beschrijving}</p>
       <span className={`badge ${clickable ? 'werkt' : 'binnenkort'}`}>
@@ -15,7 +15,7 @@ export default function ShowcaseTile({ showcase }) {
 
   if (clickable) {
     return (
-      <Link className="tile" data-clickable="true" to={`/hoofdstuk/${showcase.id}`}>
+      <Link className="tile" data-clickable="true" to={`/scenario/${showcase.id}`}>
         {content}
       </Link>
     );

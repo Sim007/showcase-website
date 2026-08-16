@@ -1,6 +1,6 @@
 import { test, expect } from '@playwright/test';
 
-// Regressietest voor de swimlanes: hoofdstuk 01 heeft 2 pipelines
+// Regressietest voor de swimlanes: scenario 01 heeft 2 pipelines
 // (payment/order) die elk als eigen horizontale rij over alle
 // omgevingskolommen lopen, zodat bv. alle 'Order'-stappen altijd op
 // dezelfde hoogte beginnen. Er is geen apart 'Keten'-milieu — de
@@ -8,7 +8,7 @@ import { test, expect } from '@playwright/test';
 // direct onder de order-swimlane.
 
 test('graph shows one swimlane per deelsysteem, aligned across every omgeving column', async ({ page }) => {
-  await page.goto('/hoofdstuk/01');
+  await page.goto('/scenario/01');
   await expect(page.locator('.graph-row-header')).toBeVisible();
   await expect(page.locator('.col-head')).toHaveText(['Code', 'CI', 'Test', 'Acceptatie']);
 
@@ -20,14 +20,14 @@ test('graph shows one swimlane per deelsysteem, aligned across every omgeving co
 });
 
 test('deelsystemen-banner shows both subsystems at a glance', async ({ page }) => {
-  await page.goto('/hoofdstuk/01');
+  await page.goto('/scenario/01');
   const banner = page.locator('.deelsystemen-banner');
   await expect(banner).toContainText('2 deelsystemen');
   await expect(banner.locator('.ds-pill')).toHaveText(['Payment', 'Order']);
 });
 
 test('klikken op een deelsysteem-pill verbergt en toont die swimlane weer', async ({ page }) => {
-  await page.goto('/hoofdstuk/01');
+  await page.goto('/scenario/01');
   const paymentPill = page.locator('.deelsystemen-banner .ds-pill', { hasText: 'Payment' });
 
   await expect(page.locator('.swimlane.ds-payment')).toBeVisible();
@@ -45,11 +45,11 @@ test('klikken op een deelsysteem-pill verbergt en toont die swimlane weer', asyn
 });
 
 test('rapport-knop leidt naar een losse rapportpagina met Deelsysteem-kolom', async ({ page }) => {
-  await page.goto('/hoofdstuk/01');
+  await page.goto('/scenario/01');
   await expect(page.locator('.report-table')).toHaveCount(0);
 
   await page.getByRole('link', { name: 'rapport' }).click();
-  await expect(page).toHaveURL(/\/hoofdstuk\/01\/rapport$/);
+  await expect(page).toHaveURL(/\/scenario\/01\/rapport$/);
 
   const table = page.locator('.report-table');
   await expect(table).toBeVisible();
@@ -58,6 +58,6 @@ test('rapport-knop leidt naar een losse rapportpagina met Deelsysteem-kolom', as
   const firstRow = table.locator('tbody tr').first();
   await expect(firstRow.locator('td.deelsysteem')).toHaveText('Payment');
 
-  await page.getByRole('link', { name: /hoofdstuk 01/ }).click();
-  await expect(page).toHaveURL(/\/hoofdstuk\/01$/);
+  await page.getByRole('link', { name: /scenario 01/ }).click();
+  await expect(page).toHaveURL(/\/scenario\/01$/);
 });

@@ -2,7 +2,7 @@ import { useEffect, useMemo, useState } from 'react';
 import { fetchScenario } from './api.js';
 import { useLiveRun } from './useLiveRun.js';
 import { vertaalStap } from './contract/vertaal.js';
-import { deriveDeelsysteemStatus } from './deriveDeelsysteemStatus.js';
+import { deriveDeelsysteemStatus, deelsysteemIsGestopt } from './deriveDeelsysteemStatus.js';
 
 // Combineert de statische stamdata van een scenario (GET /v1/scenarios/:id)
 // met de live/opgeslagen stream tot één stappenlijst, en leidt daaruit de
@@ -19,7 +19,13 @@ export function usePipelineRun(id, { bron, opgeslagenPad } = {}) {
     fetchScenario(id).then(setDataset).catch((e) => setError(e.message));
   }, [id]);
 
-  const liveVoorDitScenario = scenarioId === id;
+  // Koppel de stream aan de stamdata die we tónen, niet aan het id uit de URL.
+  // De stapnummers in de berichten verwijzen naar de stappenlijst die we in
+  // beeld hebben; alleen daarvan is bekend welke stap nummer 3 is. Normaal
+  // zijn URL-id en stamdata-id hetzelfde. Zijn ze dat niet, dan klopt de
+  // levering niet (de pagina meldt dat apart) — maar dan is de stamdata nog
+  // steeds de juiste sleutel, en het URL-id juist de verkeerde.
+  const liveVoorDitScenario = dataset != null && scenarioId === dataset.id;
 
   const steps = useMemo(() => {
     if (!dataset) return [];
@@ -39,7 +45,7 @@ export function usePipelineRun(id, { bron, opgeslagenPad } = {}) {
     const map = {};
     for (const ds of ids) {
       const eigenStappen = steps.filter((s) => s.deelsysteem === ds);
-      const gestopt = liveVoorDitScenario && runGestopt && eigenStappen.some((s) => s.uitkomst === 'niet-uitgevoerd');
+      const gestopt = deelsysteemIsGestopt(eigenStappen, liveVoorDitScenario && runGestopt);
       map[ds] = deriveDeelsysteemStatus(eigenStappen, gestopt);
     }
     return map;

@@ -21,16 +21,19 @@ function buildGrid(steps) {
 // horizontale rij (payment/order/keten), elke omgeving een kolom daarbinnen.
 // Vorm draagt het staptype (rondje=actie, ruit=gate); kleur draagt nooit
 // alleen de status — icoon + label staan er altijd bij.
-export default function PipelineGraph({ steps, statussen = {} }) {
-  const omgevingen = OMGEVINGEN.filter((o) => steps.some((s) => s.omgeving === o.key));
+export default function PipelineGraph({ steps, statussen = {}, omgevingen }) {
+  // Zonder expliciete lijst (bv. oudere aanroepers/tests): afleiden uit de
+  // stappen, zoals voorheen. Meegegeven vanuit de stamdata (Pipeline.jsx) wint
+  // altijd — dat toont ook een omgeving zonder stappen in déze dataset.
+  const kolommen = omgevingen || OMGEVINGEN.filter((o) => steps.some((s) => s.omgeving === o.key));
   const { deelsysteemOrder, cellMap } = buildGrid(steps);
-  const gridTemplateColumns = `140px repeat(${omgevingen.length}, minmax(150px, 1fr))`;
+  const gridTemplateColumns = `140px repeat(${kolommen.length}, minmax(150px, 1fr))`;
 
   return (
     <div className="graph">
       <div className="graph-row graph-row-header" style={{ gridTemplateColumns }}>
         <div className="graph-corner" />
-        {omgevingen.map((o) => (
+        {kolommen.map((o) => (
           <div className="col-head" key={o.key}>{o.label}</div>
         ))}
       </div>
@@ -44,7 +47,7 @@ export default function PipelineGraph({ steps, statussen = {} }) {
               <h5>{DEELSYSTEEM_LABELS[ds] || ds}</h5>
               <span className={`ds-status ${dsStatus}`}>{statusMeta.glyph} {statusMeta.label}</span>
             </div>
-            {omgevingen.map((o) => {
+            {kolommen.map((o) => {
               const cellSteps = cellMap.get(`${ds}|${o.key}`) || [];
               return (
                 <div className="lane-cell" key={o.key}>

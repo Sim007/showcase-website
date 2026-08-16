@@ -24,7 +24,13 @@ export function useLiveRun({ bron = 'live', opgeslagenPad } = {}) {
     setState(initState());
     setConnected(false);
 
-    const onBericht = (bericht) => setState((s) => reduceerBericht(s, bericht));
+    const onBericht = (bericht) => {
+      setState((s) => reduceerBericht(s, bericht));
+      // Klaar met deze run: loskoppelen, anders verbindt de browser uit
+      // zichzelf opnieuw en loopt er zo weer een run binnen die niemand
+      // startte. Zie contract/eventSourceBron.js.
+      if (bericht.soort === 'run-afgerond') bronRef.current?.verbreek?.();
+    };
 
     const actieveBron =
       bron === 'opgeslagen'

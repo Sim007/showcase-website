@@ -48,7 +48,7 @@ a { color: inherit; }
 
 /* --- Landing --- */
 /* Zelfde aanpak als de pipeline-pagina: past na F11 op 1920x1080 zonder
-   paginascroll, ook als er later meer hoofdstuk-tegels bijkomen — de
+   paginascroll, ook als er later meer scenario-tegels bijkomen — de
    tegels-grid krijgt dan zijn eigen interne scroll in plaats van de pagina. */
 
 .page.landing-page {
@@ -127,7 +127,7 @@ a { color: inherit; }
 /* --- Pipeline page --- */
 /* Bedoeld om na F11 op 1920x1080 zonder paginascroll te passen: de pagina
    krijgt een vaste 100vh-hoogte, de graph is het enige onderdeel dat kan
-   groeien en scrollt zelf intern als een hoofdstuk niet past. */
+   groeien en scrollt zelf intern als een scenario niet past. */
 
 .page.pipeline-page {
   height: 100vh;
@@ -181,6 +181,12 @@ button.primary {
   padding: 10px 18px;
   font-weight: 600;
   cursor: pointer;
+  height: 38px;
+  box-sizing: border-box;
+  /* Vast op de breedte van de langste tekst ("wacht op ander scenario") zodat
+     de knop niet van breedte verspringt bij elke statuswisseling. */
+  min-width: 190px;
+  text-align: center;
 }
 button.primary:disabled { opacity: 0.5; cursor: default; }
 button.ghost, a.ghost {
@@ -190,8 +196,78 @@ button.ghost, a.ghost {
   padding: 10px 16px;
   cursor: pointer;
   color: var(--text-secondary);
+  height: 38px;
+  box-sizing: border-box;
 }
 a.ghost { text-decoration: none; display: inline-flex; align-items: center; }
+
+.bron-select {
+  -webkit-appearance: none;
+  -moz-appearance: none;
+  appearance: none;
+  font-family: inherit;
+  font-size: 13.3333px;
+  line-height: 1.2;
+  background-color: transparent;
+  background-image: url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='10' height='6' viewBox='0 0 10 6'><path d='M0 0l5 6 5-6z' fill='%23898781'/></svg>");
+  background-repeat: no-repeat;
+  background-position: right 12px center;
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  /* Zelfde verticale padding als button.ghost/.primary (10px), plus ruimte
+     rechts voor de zelfgetekende pijl i.p.v. de systeempijl — anders komt de
+     select niet op dezelfde hoogte uit als de knoppen ernaast. */
+  padding: 10px 28px 10px 16px;
+  height: 38px;
+  box-sizing: border-box;
+  color: var(--text-secondary);
+  cursor: pointer;
+}
+.bron-select:focus { outline: 2px solid var(--series-1); outline-offset: 1px; }
+
+/* Verbindingsindicator. Het bolletje pulseert alleen zolang we daadwerkelijk
+   aan de stream hangen — dat is het verschil tussen "live" en "staat klaar",
+   en dat verschil moet je kunnen zien zonder de tekst te lezen. */
+.verbinding {
+  display: inline-flex;
+  align-items: center;
+  gap: 7px;
+  font-size: 12px;
+  color: var(--text-muted);
+  white-space: nowrap;
+}
+.verbinding::before {
+  content: '';
+  width: 7px;
+  height: 7px;
+  border-radius: 999px;
+  background: currentColor;
+  flex: 0 0 auto;
+}
+.verbinding.verbonden { color: var(--status-good); }
+.verbinding.verbonden::before { animation: verbinding-pulse 1.4s ease-in-out infinite; }
+.verbinding.gereed { color: var(--text-muted); }
+.verbinding.opgeslagen { color: var(--ds-order); }
+
+@keyframes verbinding-pulse {
+  0%, 100% { opacity: 1; }
+  50% { opacity: 0.25; }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .verbinding.verbonden::before { animation: none; }
+}
+
+.melding {
+  flex: 0 0 auto;
+  background: color-mix(in srgb, var(--ds-order) 10%, var(--surface-1));
+  border: 1px solid color-mix(in srgb, var(--ds-order) 35%, transparent);
+  border-radius: 8px;
+  padding: 8px 12px;
+  margin-bottom: 10px;
+  font-size: 12px;
+  color: var(--text-secondary);
+}
 
 .meta-row {
   display: flex;
@@ -301,7 +377,11 @@ a.ghost { text-decoration: none; display: inline-flex; align-items: center; }
 .swimlane.ds-order { border-left: 4px solid var(--ds-order); background: color-mix(in srgb, var(--ds-order) 5%, var(--surface-1)); }
 .swimlane.ds-keten { border-left: 4px solid var(--ds-keten); background: color-mix(in srgb, var(--ds-keten) 5%, var(--surface-1)); }
 
-.lane-label { display: flex; align-items: center; gap: 8px; }
+/* Naam en statuspil onder elkaar, niet naast elkaar — anders past een
+   langere status ("nog niet gestart") of een wrappende deelsysteemnaam
+   ("Order + Payment") niet in de vaste 140px-kolom en loopt hij over de
+   Code-kolom heen. */
+.lane-label { display: flex; flex-direction: column; align-items: flex-start; gap: 4px; }
 .lane-label h5 {
   margin: 0;
   font-size: 11px;
@@ -396,6 +476,19 @@ a.ghost { text-decoration: none; display: inline-flex; align-items: center; }
   margin-bottom: 20px;
 }
 .cli-panel .line { white-space: pre-wrap; word-break: break-word; }
+.cli-panel .deelsysteem-kop {
+  margin: 12px 0 4px;
+  font-size: 10px;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  font-weight: 700;
+  border-left: 3px solid currentColor;
+  padding-left: 8px;
+}
+.cli-panel .deelsysteem-kop:first-child { margin-top: 0; }
+.cli-panel .deelsysteem-kop.ds-payment { color: var(--ds-payment); }
+.cli-panel .deelsysteem-kop.ds-order { color: var(--ds-order); }
+.cli-panel .deelsysteem-kop.ds-keten { color: var(--ds-keten); }
 .cli-panel .line .prompt { color: #6da7ec; }
 .cli-panel .line.result-groen { color: #4fd44f; }
 .cli-panel .line.result-rood { color: #e66767; }
