@@ -148,6 +148,12 @@ gerepareerd.
   - `playwright.config.js`'s server-gezondheidscheck (`/api/hoofdstukken`) is al gerepareerd
     naar `/api/content/showcases`, anders start de suite nooit.
 
+**Dependency-scanning loopt via GitHub, niet lokaal.** `npm audit` werkt op een Centric-werkplek
+niet: de ingestelde mirror (`registry.npmmirror.com`) implementeert het audit-endpoint niet, en
+rechtstreeks naar `registry.npmjs.org` breekt op de TLS-interceptie van het bedrijfsnetwerk.
+Dependabot op de repo is dus de plek waar de NFR "geen bekende kwetsbaarheden" bewaakt wordt —
+lokaal een schone `npm audit` verwachten heeft geen zin.
+
 ## Bekende aannames (MVP)
 
 - Eén run tegelijk — afgedwongen door showcase-CBT/de stub (409 bij een tweede poging), geen
