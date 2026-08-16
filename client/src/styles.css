@@ -248,6 +248,7 @@ a.ghost { text-decoration: none; display: inline-flex; align-items: center; }
 .verbinding.verbonden::before { animation: verbinding-pulse 1.4s ease-in-out infinite; }
 .verbinding.gereed { color: var(--text-muted); }
 .verbinding.opgeslagen { color: var(--ds-order); }
+.verbinding.weg { color: var(--status-critical); font-weight: 600; }
 
 @keyframes verbinding-pulse {
   0%, 100% { opacity: 1; }

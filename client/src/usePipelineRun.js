@@ -1,6 +1,6 @@
 import { useEffect, useMemo, useState } from 'react';
 import { fetchScenario } from './api.js';
-import { useLiveRun } from './useLiveRun.js';
+import { useLiveRun } from './LiveRunProvider.jsx';
 import { vertaalStap } from './contract/vertaal.js';
 import { deriveDeelsysteemStatus, deelsysteemIsGestopt } from './deriveDeelsysteemStatus.js';
 
@@ -9,13 +9,18 @@ import { deriveDeelsysteemStatus, deelsysteemIsGestopt } from './deriveDeelsyste
 // status per deelsysteem af. Het contract stopt alleen stapNummer + uitkomst
 // in de stream — de rest (deelsysteem, omgeving, cli, ...) komt uit de
 // stamdata en wordt hier gejoined, niet uit tekst geparsed.
-export function usePipelineRun(id, { bron, opgeslagenPad } = {}) {
+//
+// De verbinding zelf zit niet hier maar in LiveRunProvider: één per sessie,
+// zodat navigeren tussen plaat en rapport de lopende run niet weggooit.
+export function usePipelineRun(id) {
   const [dataset, setDataset] = useState(null);
   const [error, setError] = useState(null);
-  const { connected, running, scenarioId, stappen, cliRegels, runGestopt, start, reset } = useLiveRun({ bron, opgeslagenPad });
+  const live = useLiveRun();
+  const { scenarioId, stappen, cliRegels, runGestopt } = live;
 
   useEffect(() => {
     setDataset(null);
+    setError(null);
     fetchScenario(id).then(setDataset).catch((e) => setError(e.message));
   }, [id]);
 
@@ -51,5 +56,5 @@ export function usePipelineRun(id, { bron, opgeslagenPad } = {}) {
     return map;
   }, [steps, liveVoorDitScenario, runGestopt]);
 
-  return { dataset, steps, deelsysteemStatussen, error, connected, running, scenarioId, start, reset };
+  return { ...live, dataset, steps, deelsysteemStatussen, error };
 }

@@ -3,25 +3,35 @@ import { valideerBericht } from './schema.js';
 // Live bron: EventSource op de stream van showcase-CBT (of de stub), met
 // fetch POST om een run te starten.
 //
-// Bewust pas verbinden wanneer er een run te volgen is, en weer loskoppelen
-// zodra die run is afgerond. De stream kent geen "er gebeurt even niets"-
-// signaal: sluit de andere kant hem, dan verbindt de browser uit zichzelf
-// opnieuw, en alles wat er dan binnenkomt oogt als een run die niemand
-// startte. Tegen de stub gebeurt dat elke paar seconden, eindeloos.
+// **Geen automatische herverbinding.** EventSource probeert het uit zichzelf
+// na een seconde of drie opnieuw, en dat is precies het gedrag dat hier niet
+// deugt: de berichten uit de tussentijd komen nooit meer, dus je krijgt een
+// plaat met gaten die er compleet uitziet. De stream is geen buffer. Valt de
+// verbinding weg, dan zeggen we dat, laten we staan wat er binnenkwam, en is
+// opnieuw beginnen de enige echte herstelactie — die hoort bij de mens achter
+// de laptop, niet bij de browser.
 //
-// De prijs staat hier expliciet: een run die al liep vóórdat je de pagina
-// opende, zie je zo niet meer vanzelf — terwijl de momentopname uit het
-// contract daar juist voor bedoeld is. Zodra er een echt showcase-CBT staat
-// (dat niet bij elke verbinding een volgende opname afspeelt) hoort dit terug
-// naar verbinden zodra de pagina opent.
-export function maakLiveBron({ apiBase, onBericht, onOpen, onClose }) {
+// Twee manieren waarop de verbinding eindigt, en ze betekenen niet hetzelfde:
+// `onLosgekoppeld` is die van onszelf (run klaar, andere bron gekozen, pagina
+// weg), `onVerbindingWeg` is die van de andere kant.
+export function maakLiveBron({ apiBase, onBericht, onOpen, onLosgekoppeld, onVerbindingWeg }) {
   let source = null;
 
   function verbind() {
     if (source) return;
     source = new EventSource(`${apiBase}/v1/runs/stream`);
+
     source.onopen = () => onOpen?.();
-    source.onerror = () => onClose?.();
+
+    source.onerror = () => {
+      // Sluiten vóór het melden: zonder close() gaat de browser alsnog
+      // herverbinden, ook al hebben we net gezegd dat de verbinding weg is.
+      const gesloten = source;
+      source = null;
+      gesloten.close();
+      onVerbindingWeg?.();
+    };
+
     source.onmessage = (event) => {
       let bericht;
       try {
@@ -36,9 +46,10 @@ export function maakLiveBron({ apiBase, onBericht, onOpen, onClose }) {
 
   function verbreek() {
     if (!source) return;
-    source.close();
+    const gesloten = source;
     source = null;
-    onClose?.();
+    gesloten.close();
+    onLosgekoppeld?.();
   }
 
   async function start(scenarioId) {

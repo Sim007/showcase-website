@@ -1,35 +1,18 @@
 import { useMemo, useState } from 'react';
 import { Link, useParams } from 'react-router-dom';
 import { usePipelineRun } from '../usePipelineRun.js';
+import { OPGESLAGEN_VARIANTEN } from '../LiveRunProvider.jsx';
+import { verbindingsStatus } from '../verbindingsStatus.js';
 import { DEELSYSTEEM_LABELS } from '../statusMeta.js';
 import PipelineGraph from '../components/PipelineGraph.jsx';
 import CliPanel from '../components/CliPanel.jsx';
 
-const OPGESLAGEN_VARIANTEN = [
-  { key: 'voltooid', label: 'opgeslagen: voltooid' },
-  { key: 'gestopt', label: 'opgeslagen: gestopt' },
-  { key: 'midden', label: 'opgeslagen: midden' },
-];
-
-// Drie toestanden, niet twee. "Niet verbonden" dekte zowel "showcase-CBT is er
-// niet" als "we luisteren even niet omdat er geen run loopt" — dat laatste is
-// de normale rusttoestand en hoort niet als storing te ogen. Dat we
-// showcase-CBT kunnen bereiken weten we los van de stream: de stamdata op deze
-// pagina kwam er net vandaan.
-function verbindingsStatus({ bron, connected }) {
-  if (bron !== 'live') return { klasse: 'opgeslagen', tekst: 'opgeslagen run — geen live verbinding' };
-  if (connected) return { klasse: 'verbonden', tekst: 'verbonden met showcase-CBT' };
-  return { klasse: 'gereed', tekst: 'showcase-CBT gereed — nog geen run' };
-}
-
 export default function Pipeline() {
   const { id } = useParams();
-  const [bron, setBron] = useState('live');
-  const opgeslagenPad = bron === 'live' ? undefined : `/opgeslagen/${bron}.json`;
-  const { dataset, steps, deelsysteemStatussen, error, connected, running, scenarioId, start, reset } = usePipelineRun(id, {
-    bron: bron === 'live' ? 'live' : 'opgeslagen',
-    opgeslagenPad,
-  });
+  const {
+    dataset, steps, deelsysteemStatussen, error,
+    bron, setBron, connected, verbindingWeg, running, scenarioId, start, reset,
+  } = usePipelineRun(id);
   const [uitgeschakeld, setUitgeschakeld] = useState(() => new Set());
 
   const deelsystemen = useMemo(() => {
@@ -71,7 +54,7 @@ export default function Pipeline() {
 
   const runningThisScenario = running && scenarioId === dataset.id;
   const runningOtherScenario = running && scenarioId !== dataset.id;
-  const status = verbindingsStatus({ bron, connected });
+  const status = verbindingsStatus({ bron, connected, verbindingWeg });
   const verkeerdeStamdata = dataset.id !== id;
 
   return (

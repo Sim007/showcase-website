@@ -12,6 +12,9 @@ class NepEventSource {
     this.gesloten = true;
   }
   stuur(bericht) {
+    // Een gesloten EventSource levert niets meer af; die eigenschap moet de
+    // nep ook hebben, anders toetst een test iets wat de browser nooit doet.
+    if (this.gesloten) return;
     this.onmessage?.({ data: JSON.stringify(bericht) });
   }
 }
@@ -34,7 +37,13 @@ afterEach(() => {
   global.fetch = origFetch;
 });
 
-const opties = () => ({ apiBase: 'http://localhost:8090', onBericht: vi.fn() });
+const opties = () => ({
+  apiBase: 'http://localhost:8090',
+  onBericht: vi.fn(),
+  onOpen: vi.fn(),
+  onLosgekoppeld: vi.fn(),
+  onVerbindingWeg: vi.fn(),
+});
 
 describe('maakLiveBron', () => {
   it('verbindt nog niet bij het aanmaken — pas als er een run te volgen is', () => {
@@ -75,6 +84,46 @@ describe('maakLiveBron', () => {
     const uitkomst = await bron.start('01');
     expect(uitkomst.ok).toBe(false);
     expect(NepEventSource.instanties[0].gesloten).toBe(false);
+  });
+
+  it('herverbindt niet uit zichzelf: bij een fout gaat de stream dicht', async () => {
+    const o = opties();
+    const bron = maakLiveBron(o);
+    await bron.start('01');
+    const stream = NepEventSource.instanties[0];
+
+    stream.onerror();
+
+    // Zonder close() zou de browser na een paar seconden zelf opnieuw
+    // verbinden en de berichten uit de tussentijd stil overslaan.
+    expect(stream.gesloten).toBe(true);
+    expect(NepEventSource.instanties).toHaveLength(1);
+  });
+
+  it('meldt een wegvallende verbinding als iets anders dan zelf loskoppelen', async () => {
+    const o = opties();
+    const bron = maakLiveBron(o);
+    await bron.start('01');
+
+    NepEventSource.instanties[0].onerror();
+    expect(o.onVerbindingWeg).toHaveBeenCalledTimes(1);
+    expect(o.onLosgekoppeld).not.toHaveBeenCalled();
+
+    await bron.start('01');
+    bron.verbreek();
+    expect(o.onLosgekoppeld).toHaveBeenCalledTimes(1);
+    expect(o.onVerbindingWeg).toHaveBeenCalledTimes(1);
+  });
+
+  it('opent na een weggevallen verbinding een verse stream in plaats van de dode', async () => {
+    const bron = maakLiveBron(opties());
+    await bron.start('01');
+    NepEventSource.instanties[0].onerror();
+
+    await bron.start('01');
+
+    expect(NepEventSource.instanties).toHaveLength(2);
+    expect(NepEventSource.instanties[1].gesloten).toBe(false);
   });
 
   it('geeft alleen geldige berichten door en slaat een onbekend berichttype over', async () => {

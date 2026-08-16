@@ -1,10 +1,12 @@
 import { Link, useParams } from 'react-router-dom';
 import { usePipelineRun } from '../usePipelineRun.js';
+import { verbindingsStatus } from '../verbindingsStatus.js';
 import ReportTable from '../components/ReportTable.jsx';
 
 export default function Report() {
   const { id } = useParams();
-  const { dataset, steps, error, connected } = usePipelineRun(id);
+  const { dataset, steps, error, bron, connected, verbindingWeg } = usePipelineRun(id);
+  const status = verbindingsStatus({ bron, connected, verbindingWeg });
 
   if (error) {
     return (
@@ -19,9 +21,7 @@ export default function Report() {
     <div className="page">
       <div className="top-nav">
         <Link className="brand" to={`/scenario/${id}`}>← scenario {id}</Link>
-        <span style={{ fontSize: 12, color: 'var(--text-muted)' }}>
-          {connected ? 'verbonden' : 'geen verbinding met de server'}
-        </span>
+        <span className={`verbinding ${status.klasse}`}>{status.tekst}</span>
       </div>
 
       <div className="pipeline-header">

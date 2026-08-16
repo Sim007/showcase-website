@@ -27,11 +27,23 @@ docker compose up --build
 **Dit start geen showcase-CBT.** Draai de showcase-cbt stubbundel apart op poort 8090 (zie
 diens `README.md`: `node stub.js`), of zet `CBT_BASE` naar een andere plek vóór het starten.
 
-De verbindingsindicator op de scenariopagina kent drie standen: *verbonden met showcase-CBT*
-(we hangen aan de stream, bolletje pulseert), *showcase-CBT gereed — nog geen run* (bereikbaar,
-maar er valt niets te volgen) en de opgeslagen modus. De stream wordt bewust pas geopend bij
-"Start" en weer gesloten zodra de run is afgerond — zie `client/src/contract/eventSourceBron.js`
-voor waarom, en wat dat kost.
+De verbindingsindicator kent vier standen: *verbonden met showcase-CBT* (we hangen aan de
+stream, bolletje pulseert), *showcase-CBT gereed — nog geen run* (bereikbaar, maar er valt
+niets te volgen), *verbinding met showcase-CBT weggevallen* (rood) en de opgeslagen modus.
+
+Twee dingen over die verbinding, allebei met opzet:
+
+- **Er is er één per sessie.** Hij hoort in `client/src/LiveRunProvider.jsx`, boven de paginas,
+  niet in de pagina-hook. Anders verbreekt elke stap van plaat naar rapport de stream en begint
+  de runstate leeg — een net afgeronde run stond dan op het rapport weer volledig op "wachtend".
+- **Er wordt niet automatisch herverbonden.** EventSource doet dat standaard na een seconde of
+  drie; dan mis je de berichten uit de tussentijd en krijg je een plaat met gaten die er compleet
+  uitziet. Valt de verbinding weg, dan zegt de indicator dat, blijft staan wat er binnenkwam, en
+  gaat de knop terug naar start. Opnieuw beginnen is de herstelactie, en die hoort bij de mens.
+  Zie `client/src/contract/eventSourceBron.js`.
+
+Dat de stream *tussen* runs dichtgaat is wél tijdelijk: dat vervalt zodra showcase-CBT hem
+openhoudt.
 
 **Let op:** zonder bereikbare showcase-CBT laadt de scenariopagina helemaal niet, ook niet in
 opgeslagen modus — de stamdata komt namelijk óók van showcase-CBT. Dat wringt met de NFR "altijd
