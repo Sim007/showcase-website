@@ -349,6 +349,12 @@ a.ghost { text-decoration: none; display: inline-flex; align-items: center; }
 .ds-pill input[type='checkbox'] {
   margin: 0;
   cursor: pointer;
+  /* Een formulierbesturing erft `color` niet van zijn label — de UA-stylesheet
+     zet hem hard op zwart. Zonder deze regel werd `currentColor` hieronder dus
+     zwart in plaats van de kleur van het deelsysteem (gemeten: label
+     rgb(107,91,149), vakje rgb(0,0,0)). Expliciet erven laat het vakje de
+     swimlane-kleur volgen, en daarmee ook de gedempte uitgevinkte staat. */
+  color: inherit;
   accent-color: currentColor;
 }
 .ds-pill:focus-within { outline: 2px solid var(--series-1); outline-offset: 1px; }
