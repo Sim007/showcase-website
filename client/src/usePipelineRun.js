@@ -12,7 +12,7 @@ import { deriveDeelsysteemStatus, deelsysteemIsGestopt } from './deriveDeelsyste
 export function usePipelineRun(id, { bron, opgeslagenPad } = {}) {
   const [dataset, setDataset] = useState(null);
   const [error, setError] = useState(null);
-  const { connected, running, scenarioId, stappen, cliRegels, runGestopt, start, reset } = useLiveRun({ bron, opgeslagenPad });
+  const { connected, running, scenarioId, stappen, cliRegels, runGestopt, start } = useLiveRun({ bron, opgeslagenPad });
 
   useEffect(() => {
     setDataset(null);
@@ -51,5 +51,5 @@ export function usePipelineRun(id, { bron, opgeslagenPad } = {}) {
     return map;
   }, [steps, liveVoorDitScenario, runGestopt]);
 
-  return { dataset, steps, deelsysteemStatussen, error, connected, running, scenarioId, start, reset };
+  return { dataset, steps, deelsysteemStatussen, error, connected, running, scenarioId, start };
 }

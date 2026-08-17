@@ -41,13 +41,15 @@ export function useLiveRun({ bron = 'live', opgeslagenPad } = {}) {
     return () => actieveBron.stop();
   }, [bron, opgeslagenPad]);
 
+  // Starten ís de reset. Een aparte resetknop vroeg om een handeling die
+  // niemand los wil doen — je reset om opnieuw te kunnen beginnen. Zonder dit
+  // schoonvegen zouden de uitkomsten van de vorige run blijven staan tot de
+  // nieuwe run diezelfde stap overschrijft, en dat leest als een run die al
+  // half gelopen heeft voordat hij begon.
   function start(scenarioId) {
-    return bronRef.current?.start(scenarioId);
-  }
-
-  function reset() {
     bronRef.current?.stop();
     setState(initState());
+    return bronRef.current?.start(scenarioId);
   }
 
   return {
@@ -60,6 +62,5 @@ export function useLiveRun({ bron = 'live', opgeslagenPad } = {}) {
     gestoptBijStap: state.gestoptBijStap,
     runGestopt: isGeeindigdMetStop(state.reden),
     start,
-    reset,
   };
 }

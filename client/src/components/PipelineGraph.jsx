@@ -32,7 +32,7 @@ export default function PipelineGraph({ steps, statussen = {}, omgevingen }) {
   return (
     <div className="graph">
       <div className="graph-row graph-row-header" style={{ gridTemplateColumns }}>
-        <div className="graph-corner" />
+        <div className="graph-corner col-head">Pipeline</div>
         {kolommen.map((o) => (
           <div className="col-head" key={o.key}>{o.label}</div>
         ))}
