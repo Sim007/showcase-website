@@ -139,12 +139,29 @@ a { color: inherit; }
 }
 .pipeline-page .top-nav,
 .pipeline-page .pipeline-header,
-.pipeline-page .meta-row {
+.pipeline-page .meta-row,
+.pipeline-page .sectiekop,
+.pipeline-page .controls {
   flex: 0 0 auto;
 }
 .pipeline-page .top-nav { margin-bottom: 12px; }
 .pipeline-page .pipeline-header { margin-bottom: 12px; }
 .pipeline-page .meta-row { margin-bottom: 10px; }
+.pipeline-page .controls { margin-bottom: 12px; }
+
+/* Sectiekop: benoemt de drie blokken op de pagina (deelsystemen kiezen,
+   dashboard, uitvoering). Klein en rustig — het is een wegwijzer, niet de
+   inhoud. */
+.sectiekop {
+  margin: 0 0 8px;
+  font-size: 13px;
+  font-weight: 700;
+  letter-spacing: 0.02em;
+  color: var(--text-secondary);
+}
+.pipeline-page .sectiekop { margin-top: 4px; }
+.pipeline-page .meta-row + .sectiekop,
+.pipeline-page .graph + .sectiekop { margin-top: 6px; }
 .pipeline-page .graph {
   flex: 1 1 auto;
   min-height: 0;
@@ -312,12 +329,10 @@ a.ghost { text-decoration: none; display: inline-flex; align-items: center; }
   gap: 8px;
   flex-wrap: wrap;
 }
-.deelsystemen-banner .label {
-  font-size: 12px;
-  font-weight: 600;
-  color: var(--text-secondary);
-}
-
+/* Een aanvinkvakje per deelsysteem, standaard alle aangevinkt. Eerder was dit
+   een knop met aria-pressed; dat las als "aan/uit-knop" terwijl het een
+   selectie is — wélke deelsystemen wil ik in beeld. Het vakje zegt dat zonder
+   uitleg, en de doorgestreepte staat blijft als tweede signaal staan. */
 .ds-pill {
   display: inline-flex;
   align-items: center;
@@ -329,7 +344,14 @@ a.ghost { text-decoration: none; display: inline-flex; align-items: center; }
   border: 1px solid transparent;
   border-radius: 999px;
   cursor: pointer;
+  user-select: none;
 }
+.ds-pill input[type='checkbox'] {
+  margin: 0;
+  cursor: pointer;
+  accent-color: currentColor;
+}
+.ds-pill:focus-within { outline: 2px solid var(--series-1); outline-offset: 1px; }
 .ds-pill.ds-payment { background: color-mix(in srgb, var(--ds-payment) 14%, transparent); color: var(--ds-payment); }
 .ds-pill.ds-order { background: color-mix(in srgb, var(--ds-order) 14%, transparent); color: var(--ds-order); }
 .ds-pill.ds-keten { background: color-mix(in srgb, var(--ds-keten) 14%, transparent); color: var(--ds-keten); }
@@ -389,12 +411,16 @@ a.ghost { text-decoration: none; display: inline-flex; align-items: center; }
 
 .graph-row-header .col-head {
   font-size: 12px;
+  font-weight: 700;
   text-transform: uppercase;
   letter-spacing: 0.04em;
   color: var(--text-muted);
   text-align: center;
   padding-bottom: 4px;
 }
+/* De hoek is nu ook een kolomkop ("Pipeline") en hoort boven de rijlabels te
+   staan, dus links uitgelijnd in plaats van gecentreerd als de omgevingen. */
+.graph-row-header .graph-corner { text-align: left; }
 
 .swimlane {
   border: 1px solid var(--gridline);

@@ -11,7 +11,7 @@ export default function Pipeline() {
   const { id } = useParams();
   const {
     dataset, steps, deelsysteemStatussen, error, stamdataUitLokaleKopie,
-    bron, setBron, connected, verbindingWeg, running, scenarioId, start, reset,
+    bron, setBron, connected, verbindingWeg, running, scenarioId, start,
   } = usePipelineRun(id);
   const [uitgeschakeld, setUitgeschakeld] = useState(() => new Set());
 
@@ -83,44 +83,42 @@ export default function Pipeline() {
           <h1>Scenario {dataset.id} — {dataset.titel}</h1>
           <p>{dataset.ondertitel}</p>
         </div>
-        <div className="controls">
-          <Link className="ghost" to={`/scenario/${id}/rapport`}>rapport</Link>
-          <button className="ghost" onClick={reset} disabled={running}>reset</button>
-          <button className="primary" onClick={() => start(id)} disabled={running}>
-            {runningThisScenario ? 'bezig...' : runningOtherScenario ? 'wacht op ander scenario' : `Start scenario ${id}`}
-          </button>
-        </div>
       </div>
 
+      <h2 className="sectiekop">Deelsystemen</h2>
       <div className="meta-row">
         <div className="deelsystemen-banner">
-          <span className="label">{deelsystemen.length} deelsystemen in deze pipeline:</span>
           {deelsystemen.map((d) => {
             const uit = uitgeschakeld.has(d);
+            const naam = DEELSYSTEEM_LABELS[d] || d;
             return (
-              <button
+              <label
                 key={d}
-                type="button"
                 className={`ds-pill ds-${d}${uit ? ' ds-pill-off' : ''}`}
-                aria-pressed={!uit}
-                title={uit ? `${DEELSYSTEEM_LABELS[d] || d} weer tonen` : `${DEELSYSTEEM_LABELS[d] || d} verbergen`}
-                onClick={() => toggleDeelsysteem(d)}
+                title={uit ? `${naam} weer tonen` : `${naam} verbergen`}
               >
-                {DEELSYSTEEM_LABELS[d] || d}
-              </button>
+                <input type="checkbox" checked={!uit} onChange={() => toggleDeelsysteem(d)} />
+                {naam}
+              </label>
             );
           })}
         </div>
 
         <div className="legend">
-          <span className="item">○ rondje = actie</span>
-          <span className="item">◆ ruit = gate</span>
           <span className="item" style={{ color: 'var(--text-muted)' }}>○ wachtend</span>
           <span className="item" style={{ color: 'var(--series-1)' }}>◐ lopend</span>
           <span className="item" style={{ color: 'var(--status-good)' }}>✓ groen</span>
           <span className="item" style={{ color: 'var(--status-critical)' }}>✕ rood</span>
           <span className="item" style={{ color: 'var(--text-muted)' }}>– niet uitgevoerd</span>
         </div>
+      </div>
+
+      <h2 className="sectiekop">Dashboard</h2>
+      <div className="controls">
+        <button className="primary" onClick={() => start(id)} disabled={running}>
+          {runningThisScenario ? 'bezig...' : runningOtherScenario ? 'wacht op ander scenario' : 'Start scenario'}
+        </button>
+        <Link className="ghost" to={`/scenario/${id}/rapport`}>Rapport</Link>
       </div>
 
       {stamdataUitLokaleKopie && (
@@ -152,6 +150,8 @@ export default function Pipeline() {
       )}
 
       <PipelineGraph steps={zichtbareSteps} statussen={deelsysteemStatussen} omgevingen={omgevingenKolommen} />
+
+      <h2 className="sectiekop">Uitvoering</h2>
       <CliPanel steps={steps} />
     </div>
   );

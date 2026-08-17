@@ -5,9 +5,9 @@ import { maakLiveBron } from './contract/eventSourceBron.js';
 import { maakOpgeslagenBron } from './contract/opgeslagenBron.js';
 
 export const OPGESLAGEN_VARIANTEN = [
-  { key: 'voltooid', label: 'opgeslagen: voltooid' },
-  { key: 'gestopt', label: 'opgeslagen: gestopt' },
-  { key: 'midden', label: 'opgeslagen: midden' },
+  { key: 'voltooid', label: 'opgeslagen run: voltooid' },
+  { key: 'gestopt', label: 'opgeslagen run: gestopt' },
+  { key: 'midden', label: 'opgeslagen run: midden' },
 ];
 
 const LiveRunContext = createContext(null);
@@ -62,12 +62,20 @@ export function LiveRunProvider({ children }) {
     return () => actieveBron.stop();
   }, [bron]);
 
-  const start = useCallback((scenarioId) => bronRef.current?.start(scenarioId), []);
-
-  const reset = useCallback(() => {
+  // Starten ís de reset. Een aparte resetknop vroeg om een handeling die
+  // niemand los wil doen — je reset om opnieuw te kunnen beginnen. Zonder dit
+  // schoonvegen zouden de uitkomsten van de vorige run blijven staan tot de
+  // nieuwe run diezelfde stap overschrijft, en de stappen die de nieuwe run
+  // níét raakt zouden een uitkomst tonen die bij een afgelopen run hoort.
+  //
+  // Ook verbindingWeg gaat hier uit: het bevroren dashboard zegt zelf "start
+  // opnieuw om verder te kijken", dus dát is het moment waarop de laatste
+  // bekende stand geen bewering meer is.
+  const start = useCallback((scenarioId) => {
     bronRef.current?.stop();
     setState(initState());
     setVerbindingWeg(false);
+    return bronRef.current?.start(scenarioId);
   }, []);
 
   const waarde = useMemo(
@@ -87,9 +95,8 @@ export function LiveRunProvider({ children }) {
       gestoptBijStap: state.gestoptBijStap,
       runGestopt: isGeeindigdMetStop(state.reden),
       start,
-      reset,
     }),
-    [bron, connected, verbindingWeg, state, start, reset]
+    [bron, connected, verbindingWeg, state, start]
   );
 
   return <LiveRunContext.Provider value={waarde}>{children}</LiveRunContext.Provider>;
