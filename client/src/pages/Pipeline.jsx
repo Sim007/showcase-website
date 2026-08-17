@@ -97,7 +97,12 @@ export default function Pipeline() {
                 className={`ds-pill ds-${d}${uit ? ' ds-pill-off' : ''}`}
                 title={uit ? `${naam} weer tonen` : `${naam} verbergen`}
               >
-                <input type="checkbox" checked={!uit} onChange={() => toggleDeelsysteem(d)} />
+                <input
+                  type="checkbox"
+                  checked={!uit}
+                  disabled={bevroren}
+                  onChange={() => toggleDeelsysteem(d)}
+                />
                 {naam}
               </label>
             );

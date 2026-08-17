@@ -311,7 +311,10 @@ a.ghost { text-decoration: none; display: inline-flex; align-items: center; }
 }
 
 /* Niets meer aan te klikken in een bevroren beeld: de toggles zouden een
-   levendigheid suggereren die er niet is. */
+   levendigheid suggereren die er niet is. Het echte slot zit op de vakjes zelf
+   (`disabled` in Pipeline.jsx) — `pointer-events` houdt alleen de muis tegen,
+   een gefocust vakje bleef met de spatiebalk gewoon schakelen. Deze regel
+   blijft staan zodat er ook geen cursorwissel of hover meer optreedt. */
 .bevroren .deelsystemen-banner { pointer-events: none; }
 
 .meta-row {
