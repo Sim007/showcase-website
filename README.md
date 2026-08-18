@@ -208,12 +208,39 @@ gerepareerd.
     omgevingskolommen en 3 deelsystemen bleven 5 van de 7 structuurspecs groen zonder één
     wijziging. De twee die omvielen, vielen om op een echte bevinding — zie hieronder.
 
-  **Wat de suite daarmee blootlegde:** `DEELSYSTEEM_LABELS` (`client/src/statusMeta.js`) staat
-  hardcoded op payment/order/keten, terwijl de stamdata `deelsystemen: [{id, naam}]` al
-  meelevert. Een scenario met een nieuw deelsysteem toont daardoor de id als label
-  (`facturatie` in plaats van `Facturatie`). Vier componenten lezen uit die map; de labels horen
-  uit de stamdata te komen. Alleen de kleuren (`--ds-<naam>` in `styles.css`) blijven terecht een
-  codewijziging — een kleur kiezen is geen data. Nog niet gerepareerd.
+  **Wat de suite daarmee blootlegde, en wat daarop gerepareerd is:** de deelsysteemnamen stonden
+  hardcoded in `statusMeta.js`, terwijl de stamdata `deelsystemen: [{id, naam}]` al meelevert —
+  een nieuw deelsysteem toonde daardoor zijn id als label. Ze komen nu uit de stamdata
+  (`client/src/deelsysteemLabels.js`), net als de stappen zelf. De keten heeft in het contract
+  geen eigen entry, dus dat label wordt samengesteld uit de deelsystemen die het scenario heeft;
+  voor scenario 01 leest dat als "Payment + Order" in plaats van het vroegere, vaste
+  "Order + Payment". Alleen de kleuren (`--ds-<id>` in `styles.css`) blijven een codewijziging —
+  een kleur kiezen is geen data.
+
+  **Wachttijden zijn afgeleid, niet gekozen.** Live zendt de stub op een vast tempo (`TEMPO_MS`,
+  400 ms per bericht), maar een *opgeslagen* opname speelt af op de tijdstempels die erin staan —
+  `opgeslagenBron.js` gebruikt de onderlinge afstanden van de opname. De speelduur is dus de
+  tijdspanne van de vastgelegde run: vandaag 11 tot 20 seconden. `pipeline-opgeslagen.spec.js`
+  leest die spanne uit het fixturebestand in plaats van een rond getal aan te houden, want een
+  vast getal zou omvallen op het moment dat de opnames langer worden.
+
+## Openstaand, met de reden
+
+- **`client/package-lock.json` wijst naar `registry.npmmirror.com`.** Elke resolved URL erin komt
+  van de Centric-mirror, dus iedereen die deze publieke repo kloont haalt zijn pakketten daar op.
+  Dat hoort hier niet. Regenereren vanaf een Centric-werkplek schrijft het er weer in — direct
+  naar `registry.npmjs.org` breekt op de TLS-interceptie van het bedrijfsnetwerk — dus dit vraagt
+  een schone omgeving. Dezelfde lock mist bovendien het `esbuild`-pakket onder `vitest` terwijl de
+  53 platformpakketten er wel staan; npm 11 accepteert dat, npm 10 niet (zie de node-versie in
+  `tests.yml`). Eén schone `npm install` lost beide op.
+- **Het dashboard past niet meer op één scherm zodra veel stappen van één deelsysteem in dezelfde
+  omgevingskolom vallen.** Gemeten met een ingevoerd scenario van 27 stappen: gelijkmatig
+  verdeeld over de kolommen past het (509px rooster, alles binnen 1080px), maar met 11
+  payment-stappen in de CI-kolom groeit het rooster naar 970px in een venster van 509px. Het
+  scrollt dan intern — niets breekt, maar je ziet één deelsysteem en een strook van het tweede,
+  en de showcase is expliciet gebouwd voor F11 op 1920×1080. De stapomschrijvingen kappen
+  daarbij af op ongeveer 30 tekens ("Contractverificatie van de c..."). Squad 1 levert 19 en 27
+  stappen voor 00 en 01; dit is de vorm waarin dat ons raakt.
 
 **Dependency-scanning loopt via GitHub, niet lokaal.** `npm audit` werkt op een Centric-werkplek
 niet: de ingestelde mirror (`registry.npmmirror.com`) implementeert het audit-endpoint niet, en

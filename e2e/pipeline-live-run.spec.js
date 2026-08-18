@@ -18,6 +18,13 @@ const SCENARIO = '01';
 
 const EINDTOESTANDEN = ['status-groen', 'status-rood', 'status-niet-uitgevoerd'];
 
+// De stub zendt live op een vast tempo van 400 ms per bericht (`TEMPO_MS` in
+// stub.js — niet op de tijdstempels van de opname, wat het commentaar daar wél
+// suggereert). Met drie berichten per stap is dat ruim een seconde per stap, dus
+// schalen we mee met de stappenlijst in plaats van een rond getal te kiezen dat
+// bij 6 stappen ruim was en bij 27 misschien niet.
+const wachtOpEindeMs = (scenario) => 20_000 + scenario.stappen.length * 3_000;
+
 async function standPerStap(page) {
   return page.locator('.graph .node').evaluateAll((nodes) =>
     nodes.map((n) => ({
@@ -43,7 +50,7 @@ test('een verse sessie hangt aan de stream zonder dat er iets gestart is', async
 });
 
 test('een run loopt van wachtend naar een eindtoestand en laat geen stap halverwege staan', async ({ page, request }) => {
-  test.setTimeout(120_000);
+  test.setTimeout(180_000);
   const scenario = await haalStamdata(request, SCENARIO);
   await page.goto(`/scenario/${SCENARIO}`);
   await expect(page.locator('.verbinding')).toHaveText('verbonden met showcase-CBT');
@@ -58,7 +65,7 @@ test('een run loopt van wachtend naar een eindtoestand en laat geen stap halverw
 
   // Klaar is klaar zodra de knop weer open staat — dat is `run-afgerond`, en het
   // werkt voor een run die slaagt net zo goed als voor een die stopt.
-  await expect(knop).toHaveText('Start scenario', { timeout: 90_000 });
+  await expect(knop).toHaveText('Start scenario', { timeout: wachtOpEindeMs(scenario) });
   await expect(knop).toBeEnabled();
 
   const stand = await standPerStap(page);
@@ -83,14 +90,15 @@ test('een run loopt van wachtend naar een eindtoestand en laat geen stap halverw
   await expect(page.locator('.cli-panel .line').first()).toBeVisible();
 });
 
-test('de verbinding blijft na een afgeronde run open, zodat de volgende run erover kan', async ({ page }) => {
-  test.setTimeout(120_000);
+test('de verbinding blijft na een afgeronde run open, zodat de volgende run erover kan', async ({ page, request }) => {
+  test.setTimeout(180_000);
+  const scenario = await haalStamdata(request, SCENARIO);
   await page.goto(`/scenario/${SCENARIO}`);
   const knop = page.locator('button.primary');
 
   await knop.click();
   await expect(knop).toHaveText('bezig...');
-  await expect(knop).toHaveText('Start scenario', { timeout: 90_000 });
+  await expect(knop).toHaveText('Start scenario', { timeout: wachtOpEindeMs(scenario) });
 
   // Tot 0.10.0 koppelden we hier zelf los, omdat de stream per run bestond.
   // Deden we dat nu nog, dan zou de sessie de volgende run niet meer zien.

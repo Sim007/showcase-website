@@ -1,4 +1,5 @@
-import { DEELSYSTEEM_LABELS, DEELSYSTEEM_STATUS_META, OMGEVINGEN, OUTCOME_META } from '../statusMeta.js';
+import { DEELSYSTEEM_STATUS_META, OMGEVINGEN, OUTCOME_META } from '../statusMeta.js';
+import { labelVan } from '../deelsysteemLabels.js';
 
 // Bouwt een rooster: rijen zijn deelsystemen (swimlanes, elk een eigen
 // kleurblok over de volledige breedte), kolommen zijn omgevingen. Zo
@@ -21,7 +22,7 @@ function buildGrid(steps) {
 // horizontale rij (payment/order/keten), elke omgeving een kolom daarbinnen.
 // Vorm draagt het staptype (rondje=actie, ruit=gate); kleur draagt nooit
 // alleen de status — icoon + label staan er altijd bij.
-export default function PipelineGraph({ steps, statussen = {}, omgevingen }) {
+export default function PipelineGraph({ steps, statussen = {}, omgevingen, labels = {} }) {
   // Zonder expliciete lijst (bv. oudere aanroepers/tests): afleiden uit de
   // stappen, zoals voorheen. Meegegeven vanuit de stamdata (Pipeline.jsx) wint
   // altijd — dat toont ook een omgeving zonder stappen in déze dataset.
@@ -44,7 +45,7 @@ export default function PipelineGraph({ steps, statussen = {}, omgevingen }) {
         <div className={`swimlane ds-${ds}`} key={ds}>
           <div className="graph-row" style={{ gridTemplateColumns }}>
             <div className="lane-label">
-              <h5>{DEELSYSTEEM_LABELS[ds] || ds}</h5>
+              <h5>{labelVan(labels, ds)}</h5>
               <span className={`ds-status ${dsStatus}`}>{statusMeta.glyph} {statusMeta.label}</span>
             </div>
             {kolommen.map((o) => {

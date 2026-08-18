@@ -1,5 +1,5 @@
 import { useEffect, useRef } from 'react';
-import { DEELSYSTEEM_LABELS } from '../statusMeta.js';
+import { labelVan } from '../deelsysteemLabels.js';
 
 // Eén regel uit het paneel. Regels die met "$ " beginnen zijn een commando —
 // die krijgen dezelfde prompt-kleur, of ze nu uit de stream komen of uit de
@@ -25,7 +25,7 @@ function Regel({ tekst }) {
 // hetzelfde feit maar dezelfde tekst, en tweemaal tonen oogt als een bug.
 // Zolang er nog geen uitvoer is, staat het stamdata-commando er wel — dan laat
 // het zien wát er draait.
-export default function CliPanel({ steps }) {
+export default function CliPanel({ steps, labels = {} }) {
   const bodyRef = useRef(null);
 
   useEffect(() => {
@@ -42,7 +42,7 @@ export default function CliPanel({ steps }) {
       {touched.map((step) => {
         const kop = step.deelsysteem !== vorigDeelsysteem;
         vorigDeelsysteem = step.deelsysteem;
-        const label = DEELSYSTEEM_LABELS[step.deelsysteem] || step.deelsysteem;
+        const label = labelVan(labels, step.deelsysteem);
         const regels = step.cliRegels || [];
 
         if (step.uitkomst === 'niet-uitgevoerd') {

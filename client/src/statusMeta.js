@@ -5,11 +5,8 @@ export const OMGEVINGEN = [
   { key: 'acceptatie', label: 'Acceptatie' },
 ];
 
-export const DEELSYSTEEM_LABELS = {
-  payment: 'Payment',
-  order: 'Order',
-  keten: 'Order + Payment',
-};
+// De namen van deelsystemen stonden hier hardcoded. Ze komen nu uit de stamdata
+// van het scenario — zie deelsysteemLabels.js voor waarom.
 
 export const OUTCOME_META = {
   wachtend: { glyph: '○', label: 'wachtend' },

@@ -2,6 +2,7 @@ import { useEffect, useMemo, useState } from 'react';
 import { haalScenario, HERKOMST } from './scenarioBron.js';
 import { useLiveRun } from './LiveRunProvider.jsx';
 import { vertaalStap } from './contract/vertaal.js';
+import { maakDeelsysteemLabels } from './deelsysteemLabels.js';
 import { deriveDeelsysteemStatus, deelsysteemIsGestopt } from './deriveDeelsysteemStatus.js';
 
 // Combineert de statische stamdata van een scenario (GET /v1/scenarios/:id)
@@ -68,11 +69,16 @@ export function usePipelineRun(id) {
     return map;
   }, [steps, liveVoorDitScenario, runGestopt]);
 
+  // Ook de labels horen bij de join: het contract levert de naam mee, dus die
+  // hoort uit dezelfde stamdata te komen als de stappen zelf.
+  const deelsysteemLabels = useMemo(() => maakDeelsysteemLabels(dataset?.deelsystemen), [dataset]);
+
   return {
     ...live,
     dataset,
     steps,
     deelsysteemStatussen,
+    deelsysteemLabels,
     error,
     stamdataUitLokaleKopie: herkomst === HERKOMST.lokaleKopie,
   };

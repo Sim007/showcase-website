@@ -1,6 +1,12 @@
 import { describe, it, expect } from 'vitest';
 import { render, screen, within } from '@testing-library/react';
 import PipelineGraph from './PipelineGraph.jsx';
+import { maakDeelsysteemLabels } from '../deelsysteemLabels.js';
+
+const LABELS = maakDeelsysteemLabels([
+  { id: 'payment', naam: 'Payment' },
+  { id: 'order', naam: 'Order' },
+]);
 
 const steps = [
   { nr: 1, omgeving: 'code', deelsysteem: 'payment', type: 'actie', stap: 'unit', uitkomst: 'groen' },
@@ -13,7 +19,7 @@ const steps = [
 
 describe('PipelineGraph', () => {
   it('zonder omgevingen-prop: leidt kolommen af uit de stappen, lege omgevingen overgeslagen', () => {
-    render(<PipelineGraph steps={steps} />);
+    render(<PipelineGraph steps={steps} labels={LABELS} />);
     expect(screen.getByText('Code')).toBeInTheDocument();
     expect(screen.getByText('CI')).toBeInTheDocument();
     expect(screen.getByText('Acceptatie')).toBeInTheDocument();
@@ -28,31 +34,31 @@ describe('PipelineGraph', () => {
       { key: 'test', label: 'Test' },
       { key: 'acceptatie', label: 'Acceptatie' },
     ];
-    render(<PipelineGraph steps={steps} omgevingen={omgevingen} />);
+    render(<PipelineGraph steps={steps} omgevingen={omgevingen} labels={LABELS} />);
     expect(screen.getByText('Test')).toBeInTheDocument();
   });
 
   it('renders one swimlane row per deelsysteem, in order of first appearance', () => {
-    render(<PipelineGraph steps={steps} />);
+    render(<PipelineGraph steps={steps} labels={LABELS} />);
     const laneLabels = screen.getAllByRole('heading', { level: 5 }).map((h) => h.textContent);
-    expect(laneLabels).toEqual(['Payment', 'Order', 'Order + Payment']);
+    expect(laneLabels).toEqual(['Payment', 'Order', 'Payment + Order']);
   });
 
   it('puts every deelsysteem-brede stap (keten) as its own swimlane, not mixed with payment/order', () => {
-    render(<PipelineGraph steps={steps} />);
-    const ketenLane = screen.getByText('Order + Payment').closest('.swimlane');
+    render(<PipelineGraph steps={steps} labels={LABELS} />);
+    const ketenLane = screen.getByText('Payment + Order').closest('.swimlane');
     expect(within(ketenLane).getByText('gebruikersflow')).toBeInTheDocument();
     expect(within(ketenLane).queryByText('unit')).not.toBeInTheDocument();
   });
 
   it('shows the step number and label for each node on one line', () => {
-    render(<PipelineGraph steps={steps} />);
+    render(<PipelineGraph steps={steps} labels={LABELS} />);
     expect(screen.getByText('#1')).toBeInTheDocument();
     expect(screen.getAllByText('unit')).toHaveLength(2);
   });
 
   it('toont een statuspil per deelsysteem, met een neutrale default zonder statussen-prop', () => {
-    render(<PipelineGraph steps={steps} />);
+    render(<PipelineGraph steps={steps} labels={LABELS} />);
     expect(screen.getAllByText('○ nog niet gestart')).toHaveLength(3);
   });
 

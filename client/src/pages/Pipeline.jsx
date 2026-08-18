@@ -3,7 +3,7 @@ import { Link, useParams } from 'react-router-dom';
 import { usePipelineRun } from '../usePipelineRun.js';
 import { OPGESLAGEN_VARIANTEN } from '../LiveRunProvider.jsx';
 import { verbindingsStatus } from '../verbindingsStatus.js';
-import { DEELSYSTEEM_LABELS } from '../statusMeta.js';
+import { KETEN, labelVan } from '../deelsysteemLabels.js';
 import PipelineGraph from '../components/PipelineGraph.jsx';
 import CliPanel from '../components/CliPanel.jsx';
 
@@ -11,12 +11,12 @@ export default function Pipeline() {
   const { id } = useParams();
   const {
     dataset, steps, deelsysteemStatussen, error, stamdataUitLokaleKopie,
-    bron, setBron, connected, verbindingWeg, nietBereikbaar, running, scenarioId, start,
+    deelsysteemLabels, bron, setBron, connected, verbindingWeg, nietBereikbaar, running, scenarioId, start,
   } = usePipelineRun(id);
   const [uitgeschakeld, setUitgeschakeld] = useState(() => new Set());
 
   const deelsystemen = useMemo(() => {
-    const set = new Set(steps.map((s) => s.deelsysteem).filter((d) => d !== 'keten'));
+    const set = new Set(steps.map((s) => s.deelsysteem).filter((d) => d !== KETEN));
     return [...set];
   }, [steps]);
 
@@ -102,7 +102,7 @@ export default function Pipeline() {
         <div className="deelsystemen-banner">
           {deelsystemen.map((d) => {
             const uit = uitgeschakeld.has(d);
-            const naam = DEELSYSTEEM_LABELS[d] || d;
+            const naam = labelVan(deelsysteemLabels, d);
             return (
               <label
                 key={d}
@@ -179,10 +179,10 @@ export default function Pipeline() {
         </div>
       )}
 
-      <PipelineGraph steps={zichtbareSteps} statussen={deelsysteemStatussen} omgevingen={omgevingenKolommen} />
+      <PipelineGraph steps={zichtbareSteps} statussen={deelsysteemStatussen} omgevingen={omgevingenKolommen} labels={deelsysteemLabels} />
 
       <h2 className="sectiekop">Uitvoering</h2>
-      <CliPanel steps={steps} />
+      <CliPanel steps={steps} labels={deelsysteemLabels} />
     </div>
   );
 }

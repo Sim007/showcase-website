@@ -1,3 +1,6 @@
+import { readFileSync } from 'node:fs';
+import { fileURLToPath } from 'node:url';
+import { dirname, join } from 'node:path';
 import { test, expect } from '@playwright/test';
 import { haalStamdata } from './stamdata.js';
 
@@ -9,6 +12,22 @@ import { haalStamdata } from './stamdata.js';
 // Dit is ook de modus die zonder showcase-CBT moet werken. Dat de stub hier toch
 // draait, komt alleen doordat de stamdata van hem komt; de stream is een bestand.
 const SCENARIO = '01';
+
+// Hoe lang een opname duurt, staat in de opname. `opgeslagenBron.js` speelt hem
+// af op de tijdstempels die erin staan, dus de speelduur is de tijdspanne van de
+// vastgelegde run — vandaag 11 tot 20 seconden, en straks zoveel als een run van
+// 19 of 27 stappen besloeg. Een vast getal hier zou dus precies omvallen op het
+// moment dat de inhoud op sterkte komt, en dat is dezelfde fout als "20 stappen"
+// in de oude suite. Vandaar: uitlezen wat erin staat.
+const OPNAMES = join(dirname(fileURLToPath(import.meta.url)), '..', 'client', 'public', 'opgeslagen');
+
+function speelduurMs(key) {
+  const berichten = JSON.parse(readFileSync(join(OPNAMES, `${key}.json`), 'utf8'));
+  const span = new Date(berichten.at(-1).tijd) - new Date(berichten[0].tijd);
+  // Ruimte voor het laden van de opname en het hertekenen; nooit korter dan een
+  // paar seconden, ook niet bij een opname van één seconde.
+  return Math.max(15_000, span + 15_000);
+}
 
 async function standPerStap(page) {
   return page.locator('.graph .node').evaluateAll((nodes) =>
@@ -24,11 +43,11 @@ async function speelOpname(page, key) {
   await expect(page.locator('.verbinding')).toHaveText('opgeslagen run — geen live verbinding');
   await page.locator('button.primary').click();
   await expect(page.locator('button.primary')).toHaveText('bezig...');
-  await expect(page.locator('button.primary')).toHaveText('Start scenario', { timeout: 60_000 });
+  await expect(page.locator('button.primary')).toHaveText('Start scenario', { timeout: speelduurMs(key) });
 }
 
 test('de opname waarin alles slaagt maakt elke stap groen', async ({ page, request }) => {
-  test.setTimeout(120_000);
+  test.setTimeout(180_000);
   const scenario = await haalStamdata(request, SCENARIO);
   await page.goto(`/scenario/${SCENARIO}`);
 
@@ -43,7 +62,7 @@ test('de opname waarin alles slaagt maakt elke stap groen', async ({ page, reque
 // staat in plaats van in de live-spec: een deelsysteem dat niets fout deed krijgt
 // niets, en het dashboard zegt dat in plaats van het eeuwig te laten wachten.
 test('de gestopte opname zet alles na de mislukte stap op niet uitgevoerd, ook een deelsysteem dat nooit begon', async ({ page, request }) => {
-  test.setTimeout(120_000);
+  test.setTimeout(180_000);
   const scenario = await haalStamdata(request, SCENARIO);
   await page.goto(`/scenario/${SCENARIO}`);
 
@@ -87,7 +106,7 @@ test('de gestopte opname zet alles na de mislukte stap op niet uitgevoerd, ook e
 // stappen meteen in, zonder `run-gestart` ervoor. Dat is de plaat die een late
 // kijker kreeg, en de enige plek waar dat geval nog te zien is.
 test('de opname die bij een lopende run instapt is meteen compleet', async ({ page, request }) => {
-  test.setTimeout(120_000);
+  test.setTimeout(180_000);
   const scenario = await haalStamdata(request, SCENARIO);
   await page.goto(`/scenario/${SCENARIO}`);
 
@@ -97,11 +116,11 @@ test('de opname die bij een lopende run instapt is meteen compleet', async ({ pa
   // Nog vóór het einde: de momentopname heeft de eerste stappen al gevuld en er
   // loopt er één, zonder dat wij die berichten gezien hebben.
   const lopend = page.locator('.graph .node .shape.status-lopend');
-  await expect(lopend).toHaveCount(1, { timeout: 30_000 });
+  await expect(lopend).toHaveCount(1, { timeout: speelduurMs('midden') });
   const tussenstand = await standPerStap(page);
   expect(tussenstand.some((s) => s.status === 'status-groen')).toBe(true);
 
-  await expect(page.locator('button.primary')).toHaveText('Start scenario', { timeout: 60_000 });
+  await expect(page.locator('button.primary')).toHaveText('Start scenario', { timeout: speelduurMs('midden') });
   const eindstand = await standPerStap(page);
   expect(eindstand).toHaveLength(scenario.stappen.length);
   expect(eindstand.every((s) => s.status === 'status-groen')).toBe(true);
