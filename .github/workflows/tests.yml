@@ -11,6 +11,13 @@ on:
     branches: [master]
   workflow_dispatch:
 
+# Node 24, hetzelfde als waarop dit lokaal draait. Dat is geen smaak: op node 20
+# stond `npm ci` in de client-job om over een client/package-lock.json die 53
+# platformpakketten van esbuild 0.28 onder vitest heeft staan maar het
+# `esbuild`-pakket zelf niet. De npm van node 24 accepteert die lock, die van
+# node 20 weigert hem — en @testing-library/jest-dom eist los daarvan al node
+# >=22. CI hoort te draaien wat de ontwikkelaar draait; anders toetst de gate een
+# omgeving die niemand gebruikt.
 jobs:
   server:
     runs-on: ubuntu-latest
@@ -18,7 +25,7 @@ jobs:
       - uses: actions/checkout@v7
       - uses: actions/setup-node@v7
         with:
-          node-version: 20
+          node-version: 24
       - run: npm ci
         working-directory: server
       - run: npm test
@@ -30,7 +37,7 @@ jobs:
       - uses: actions/checkout@v7
       - uses: actions/setup-node@v7
         with:
-          node-version: 20
+          node-version: 24
       - run: npm ci
         working-directory: client
       - run: npm test
@@ -43,7 +50,7 @@ jobs:
       - uses: actions/checkout@v7
       - uses: actions/setup-node@v7
         with:
-          node-version: 20
+          node-version: 24
       - run: npm ci
       - run: npm ci
         working-directory: server
