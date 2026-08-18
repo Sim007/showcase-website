@@ -177,22 +177,43 @@ gerepareerd.
 
 - `cd server && npm test` — integratietests voor de contentroutes (`app.js`: `/api/content/*`), met vitest. De simulator-tests zijn vervallen samen met de simulator zelf.
 - `cd client && npm test` — unit tests (`simpleMarkdown.js`, `deriveDeelsysteemStatus.js`, en de contractlaag: `schema.js`, `vertaal.js`, `berichtReducer.js`) en componenttests (React Testing Library) voor `ShowcaseTile`, `ReportTable`, `PipelineGraph`.
-- `npm run test:e2e` (in de root) — Playwright end-to-end tests. **Bekend kapot, nog niet
-  gerepareerd:**
-  - `pipeline-deelsysteem.spec.js` en `pipeline-live-run.spec.js` verwachten nog de oude,
-    rijkere scenario-01/00-content (4 omgevingskolommen inclusief "Test", 20+ stappen) —
-    die bestaat niet meer zonder de simulator. Moeten herschreven worden tegen de dunnere
-    contract-voorbeelddata, of tegen een eigen vastgelegde opgeslagen-stream.
-  - De suite draait standaard met meerdere parallelle workers tegen **één gedeelde
-    stub-instantie**. De stub geeft bij elke `POST /v1/runs` de eerstvolgende run in een vaste
-    rotatie van 3 (tot 0.10.0 ging dat per nieuwe verbinding) — meerdere gelijktijdige tests
-    laten daardoor los van elkaar rondlopen in diezelfde rotatie, wat tot niet-reproduceerbare
-    uitkomsten leidt (geconstateerd: een test die keurig een run start, ziet die nooit als
-    "eigen" run omdat een andere, gelijktijdig lopende test intussen de rotatie heeft
-    opgeschoven). Vereist serieel draaien tegen de stub, of een stub-instantie per test/werker —
-    nog niet ingericht.
-  - `playwright.config.js`'s server-gezondheidscheck (`/api/hoofdstukken`) is al gerepareerd
-    naar `/api/content/showcases`, anders start de suite nooit.
+- `npm run test:e2e` (in de root) — Playwright end-to-end tests. **De suite start alles zelf:**
+  de stubbundel op 8090, de contentserver op 4000 en de client op 5173. Draait er al iets op die
+  poorten, dan wordt dat hergebruikt (lokaal handig); in CI altijd verse processen.
+
+  `npm run stub:haal` haalt de stubbundel op in `.stub/` (niet in git) en toetst hem tegen een
+  **in de repo vastgepinde versie én checksum** (`scripts/haal-stubbundel.mjs`). Alleen tegen het
+  meegeleverde `.sha256` toetsen zou niets bewijzen over wélke bundel je hebt — dat bestand komt
+  uit dezelfde release. Wie de bundel bumpt verandert dus twee regels, en daarmee staat
+  "waartegen is dit getoetst" in de repo in plaats van in iemands geheugen. Het script is
+  idempotent, dus het mag vóór elke run.
+
+  **Eén werker, niet parallel, en dat is een voorwaarde en geen afweging.** De stub deelt één
+  rotatie van drie opnames: elke `POST /v1/runs` schuift hem op (tot 0.10.0 ging dat per nieuwe
+  verbinding). Twee specs tegelijk schuiven de rotatie onder elkaar weg.
+
+  **Hoe de specs inhoudsvast zijn gemaakt.** De suite stond maanden rood omdat hij 20 stappen
+  verwachtte en de inhoud er 6 werd. Het aantal stappen was nooit het gedrag dat we wilden
+  vastleggen. Verwachtingen worden nu afgeleid uit de stamdata die de pagina zélf krijgt
+  (`e2e/stamdata.js`): kolommen zijn de omgevingen uit `GET /v1/scenarios/:id`, swimlanes zijn de
+  deelsystemen in volgorde van eerste voorkomen. Verder:
+  - **Live specs zijn opname-blind.** `pipeline-live-run.spec.js` legt vast wat voor élke opname
+    geldt — een run gaat van wachtend naar een eindtoestand, laat niets op "lopend" staan, en de
+    verbinding blijft erna open. Niet welke stap groen wordt, want dat hangt af van waar de
+    rotatie staat.
+  - **Uitkomsten staan in `pipeline-opgeslagen.spec.js`**, want daar kiezen wíj de opname. Die
+    zijn daarmee vastgepind op een contractartefact uit de bundel en niet op handgeschreven
+    inhoud.
+  - Aangetoond in plaats van beweerd: met de stamdata van de stub verbouwd naar 8 stappen, 4
+    omgevingskolommen en 3 deelsystemen bleven 5 van de 7 structuurspecs groen zonder één
+    wijziging. De twee die omvielen, vielen om op een echte bevinding — zie hieronder.
+
+  **Wat de suite daarmee blootlegde:** `DEELSYSTEEM_LABELS` (`client/src/statusMeta.js`) staat
+  hardcoded op payment/order/keten, terwijl de stamdata `deelsystemen: [{id, naam}]` al
+  meelevert. Een scenario met een nieuw deelsysteem toont daardoor de id als label
+  (`facturatie` in plaats van `Facturatie`). Vier componenten lezen uit die map; de labels horen
+  uit de stamdata te komen. Alleen de kleuren (`--ds-<naam>` in `styles.css`) blijven terecht een
+  codewijziging — een kleur kiezen is geen data. Nog niet gerepareerd.
 
 **Dependency-scanning loopt via GitHub, niet lokaal.** `npm audit` werkt op een Centric-werkplek
 niet: de ingestelde mirror (`registry.npmmirror.com`) implementeert het audit-endpoint niet, en

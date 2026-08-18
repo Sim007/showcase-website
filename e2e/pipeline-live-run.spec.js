@@ -1,36 +1,99 @@
 import { test, expect } from '@playwright/test';
+import { haalStamdata } from './stamdata.js';
 
-// De server deelt één run-state over alle verbonden clients (zie README —
-// "Eén run tegelijk gedeeld"). Dit is de enige spec die daadwerkelijk een
-// run start, zodat hij niet kan botsen met een start-poging uit een andere
-// spec. Scenario 00 heeft de minste stappen (20) en is dus het snelst.
-test.describe.configure({ mode: 'serial' });
+// De enige specs die daadwerkelijk een run starten. Twee dingen maken ze
+// bewust blind voor de inhoud van die run:
+//
+// 1. De stub roteert bij elke `POST /v1/runs` naar de volgende opname, en welke
+//    dat is hangt af van hoeveel er in dit stubproces al gestart zijn. Een test
+//    die "alles wordt groen" verwacht, klopt dus één op de drie keer.
+// 2. Hoeveel stappen een scenario heeft is inhoud. De vorige versie van deze
+//    spec verwachtte er twintig; er kwamen zes en de suite stond maanden rood.
+//
+// Wat hier wél vastligt is het gedrag dat voor élke opname en élk scenario geldt:
+// een run loopt van wachtend naar een eindtoestand, laat niets halverwege staan,
+// en de verbinding blijft erna open. De uitkomsten per opname staan in
+// `pipeline-opgeslagen.spec.js`, waar wij kiezen welke opname speelt.
+const SCENARIO = '01';
 
-test('starting a run walks every step from wachtend to groen', async ({ page }) => {
-  test.setTimeout(90_000);
+const EINDTOESTANDEN = ['status-groen', 'status-rood', 'status-niet-uitgevoerd'];
 
-  await page.goto('/scenario/00');
+async function standPerStap(page) {
+  return page.locator('.graph .node').evaluateAll((nodes) =>
+    nodes.map((n) => ({
+      nr: Number(n.querySelector('.nr').textContent.trim().replace('#', '')),
+      status: [...n.querySelector('.shape').classList].find((c) => c.startsWith('status-')),
+    }))
+  );
+}
 
-  const step1 = page.locator('.node').filter({ has: page.locator('.nr', { hasText: /^#1$/ }) });
-  const step20 = page.locator('.node').filter({ has: page.locator('.nr', { hasText: /^#20$/ }) });
-  const startButton = page.locator('button.primary');
+test('een verse sessie hangt aan de stream zonder dat er iets gestart is', async ({ page, request }) => {
+  const scenario = await haalStamdata(request, SCENARIO);
+  await page.goto(`/scenario/${SCENARIO}`);
 
-  // Er is geen resetknop meer: starten ís de reset. Een vers geladen pagina
-  // verbindt meteen, maar zolang er niets loopt draagt de momentopname
-  // `run: null` en staat alles dus nog op wachtend.
-  await expect(step1.locator('.shape')).toHaveClass(/status-wachtend/);
+  // Sinds run-stream 0.11.0 blijft de stream tussen runs open, dus verbinden
+  // hoort bij het openen van de pagina en niet bij de startknop.
+  await expect(page.locator('.verbinding')).toHaveText('verbonden met showcase-CBT');
 
-  await startButton.click();
-  await expect(startButton).toBeDisabled();
-  await expect(startButton).toHaveText('bezig...');
+  const stand = await standPerStap(page);
+  expect(stand).toHaveLength(scenario.stappen.length);
+  expect(stand.every((s) => s.status === 'status-wachtend')).toBe(true);
+  await expect(page.locator('button.primary')).toHaveText('Start scenario');
+  await expect(page.locator('button.primary')).toBeEnabled();
+});
 
-  // eerste stap doorloopt lopend -> groen
-  await expect(step1.locator('.shape')).toHaveClass(/status-lopend/, { timeout: 5_000 });
-  await expect(step1.locator('.shape')).toHaveClass(/status-groen/, { timeout: 5_000 });
-  await expect(page.locator('.cli-panel')).toContainText('ci/pipeline-microservice.sh payment payment-api');
+test('een run loopt van wachtend naar een eindtoestand en laat geen stap halverwege staan', async ({ page, request }) => {
+  test.setTimeout(120_000);
+  const scenario = await haalStamdata(request, SCENARIO);
+  await page.goto(`/scenario/${SCENARIO}`);
+  await expect(page.locator('.verbinding')).toHaveText('verbonden met showcase-CBT');
 
-  // hele run loopt door tot en met de laatste stap (gebruikersflow, keten)
-  await expect(step20.locator('.shape')).toHaveClass(/status-groen/, { timeout: 60_000 });
-  await expect(startButton).toHaveText('Start scenario');
-  await expect(startButton).toBeEnabled();
+  const knop = page.locator('button.primary');
+  await knop.click();
+
+  // Zolang de run loopt is starten dicht: er kan er één tegelijk lopen, en een
+  // tweede poging zou een 409 opleveren.
+  await expect(knop).toHaveText('bezig...');
+  await expect(knop).toBeDisabled();
+
+  // Klaar is klaar zodra de knop weer open staat — dat is `run-afgerond`, en het
+  // werkt voor een run die slaagt net zo goed als voor een die stopt.
+  await expect(knop).toHaveText('Start scenario', { timeout: 90_000 });
+  await expect(knop).toBeEnabled();
+
+  const stand = await standPerStap(page);
+  expect(stand).toHaveLength(scenario.stappen.length);
+  for (const stap of stand) {
+    expect(EINDTOESTANDEN, `stap ${stap.nr} bleef op ${stap.status} staan`).toContain(stap.status);
+  }
+
+  // De domeinregel, voorwaardelijk zodat hij ook klopt voor een run waarin niets
+  // mislukt: valt er een stap om, dan komt er daarna niets meer aan de beurt en
+  // heet dat "niet uitgevoerd" en niet "wachtend".
+  const gevallen = stand.find((s) => s.status === 'status-rood');
+  if (gevallen) {
+    for (const stap of stand.filter((s) => s.nr > gevallen.nr)) {
+      expect(stap.status, `stap ${stap.nr} na de mislukte stap ${gevallen.nr}`).toBe('status-niet-uitgevoerd');
+    }
+  }
+
+  // Het cli-paneel is geen samenvatting maar het transcript; na een run staat er
+  // uitvoer in plaats van de wachtstand.
+  await expect(page.locator('.cli-panel .empty')).toHaveCount(0);
+  await expect(page.locator('.cli-panel .line').first()).toBeVisible();
+});
+
+test('de verbinding blijft na een afgeronde run open, zodat de volgende run erover kan', async ({ page }) => {
+  test.setTimeout(120_000);
+  await page.goto(`/scenario/${SCENARIO}`);
+  const knop = page.locator('button.primary');
+
+  await knop.click();
+  await expect(knop).toHaveText('bezig...');
+  await expect(knop).toHaveText('Start scenario', { timeout: 90_000 });
+
+  // Tot 0.10.0 koppelden we hier zelf los, omdat de stream per run bestond.
+  // Deden we dat nu nog, dan zou de sessie de volgende run niet meer zien.
+  await expect(page.locator('.verbinding')).toHaveText('verbonden met showcase-CBT');
+  await expect(knop).toBeEnabled();
 });

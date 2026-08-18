@@ -1,6 +1,14 @@
 name: Tests
 
+# Deze suite stond maanden rood zonder dat iemand het merkte, omdat hij alleen
+# met de hand te starten was. Een testsuite die je moet aanroepen om te weten of
+# hij nog klopt, weet je alleen te waarderen als je hem al vertrouwde. Vandaar:
+# op elke push naar master en op elke pull request erheen.
 on:
+  push:
+    branches: [master]
+  pull_request:
+    branches: [master]
   workflow_dispatch:
 
 jobs:
@@ -42,4 +50,15 @@ jobs:
       - run: npm ci
         working-directory: client
       - run: npx playwright install --with-deps chromium
+      # De stubbundel wordt hier apart opgehaald in plaats van door
+      # playwright.config.js heen: valt de download of de checksum om, dan is dat
+      # een eigen rode stap met een eigen melding, en niet een webServer die
+      # "timed out" zegt over iets wat nooit begonnen is.
+      - run: npm run stub:haal
       - run: npm run test:e2e
+      - uses: actions/upload-artifact@v4
+        if: failure()
+        with:
+          name: playwright-traces
+          path: test-results/
+          retention-days: 7

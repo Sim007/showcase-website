@@ -1,5 +1,5 @@
 [
-  { "id": "00", "titel": "Startsituatie", "beschrijving": "Hoe het gaat zonder contracttesten — alles groen, maar niets toetst de grens.", "status": "werkt" },
+  { "id": "00", "titel": "Startsituatie", "beschrijving": "Hoe het gaat zonder contracttesten — alles groen, maar niets toetst de grens.", "status": "binnenkort" },
   { "id": "01", "titel": "Basis (API)", "beschrijving": "Hoe het gaat mét contracttesten — Order → Payment, REST, spec-first via Apicurio.", "status": "werkt" },
   { "id": "02", "titel": "Wijziging zonder breuk", "beschrijving": "Een additieve wijziging, v1.1.0, naast de bestaande versie.", "status": "binnenkort" },
   { "id": "03", "titel": "Breaking wijziging", "beschrijving": "Twee majors naast elkaar in dezelfde runtime.", "status": "binnenkort" },

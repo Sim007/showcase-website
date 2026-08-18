@@ -4,6 +4,8 @@
   "private": true,
   "type": "module",
   "scripts": {
+    "stub:haal": "node scripts/haal-stubbundel.mjs",
+    "stub": "npm run stub:haal && node .stub/bundel/stub.js",
     "test:e2e": "playwright test"
   },
   "devDependencies": {
