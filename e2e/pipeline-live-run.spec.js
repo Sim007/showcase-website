@@ -16,7 +16,8 @@ test('starting a run walks every step from wachtend to groen', async ({ page }) 
   const startButton = page.locator('button.primary');
 
   // Er is geen resetknop meer: starten ís de reset. Een vers geladen pagina
-  // begint sowieso leeg — er wordt pas verbonden zodra je zelf start.
+  // verbindt meteen, maar zolang er niets loopt draagt de momentopname
+  // `run: null` en staat alles dus nog op wachtend.
   await expect(step1.locator('.shape')).toHaveClass(/status-wachtend/);
 
   await startButton.click();

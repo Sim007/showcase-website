@@ -7,7 +7,14 @@ import { maakOpgeslagenBron } from './contract/opgeslagenBron.js';
 export const OPGESLAGEN_VARIANTEN = [
   { key: 'voltooid', label: 'opgeslagen run: voltooid' },
   { key: 'gestopt', label: 'opgeslagen run: gestopt' },
-  { key: 'midden', label: 'opgeslagen run: midden' },
+  // 'midden' heette zo omdat je er middenin een run instapte. Tegen de bundel
+  // is dat niet meer te doen — die roteert op POST en stelt zelf geen
+  // momentopname samen — maar deze opname begint nog steeds met een
+  // momentopname van een lópende run: stap 1 en 2 afgerond, stap 3 bezig, geen
+  // `run-gestart`. Wat hier verdwenen is, is het instappen zelf, niet de
+  // berichten die je er als late kijker van kreeg. Vandaar een label over de
+  // opname en niet over de kijker.
+  { key: 'midden', label: 'opgeslagen run: begint bij stap 3' },
 ];
 
 const LiveRunContext = createContext(null);
@@ -25,21 +32,22 @@ export function LiveRunProvider({ children }) {
   const [state, setState] = useState(initState());
   const [connected, setConnected] = useState(false);
   const [verbindingWeg, setVerbindingWeg] = useState(false);
+  const [nietBereikbaar, setNietBereikbaar] = useState(false);
   const bronRef = useRef(null);
 
   useEffect(() => {
     setState(initState());
     setConnected(false);
     setVerbindingWeg(false);
+    setNietBereikbaar(false);
 
-    const onBericht = (bericht) => {
-      setState((s) => reduceerBericht(s, bericht));
-      // Klaar met deze run: zelf loskoppelen. Zolang showcase-CBT de stream na
-      // een run sluit en bij de volgende verbinding de eerstvolgende opname
-      // afspeelt, is openblijven hetzelfde als een run laten beginnen die
-      // niemand startte. Dit vervalt zodra de stream tussen runs openblijft.
-      if (bericht.soort === 'run-afgerond') bronRef.current?.verbreek?.();
-    };
+    // Alleen nog reduceren. Loskoppelen bij `run-afgerond` hoorde bij een stream
+    // die per run bestond: zolang showcase-CBT na een run sloot en bij de
+    // volgende verbinding de eerstvolgende opname afspeelde, was openblijven
+    // hetzelfde als een run laten beginnen die niemand startte. Vanaf
+    // run-stream 0.11.0 blijft de stream open en roteert de opname op
+    // `POST /v1/runs` — de vervaldatum die hier stond, is bereikt.
+    const onBericht = (bericht) => setState((s) => reduceerBericht(s, bericht));
 
     const actieveBron =
       bron === 'live'
@@ -49,34 +57,59 @@ export function LiveRunProvider({ children }) {
             onOpen: () => {
               setConnected(true);
               setVerbindingWeg(false);
+              setNietBereikbaar(false);
             },
             onLosgekoppeld: () => setConnected(false),
-            onVerbindingWeg: () => {
+            // Nooit verbonden geweest is iets anders dan weggevallen: er is dan
+            // geen laatste bekende stand, dus niets om te bevriezen. Het
+            // dashboard moet dan gewoon leeg en bruikbaar blijven en zeggen dat
+            // showcase-CBT niet bereikbaar is.
+            onVerbindingWeg: ({ ooitVerbonden } = {}) => {
               setConnected(false);
-              setVerbindingWeg(true);
+              setVerbindingWeg(Boolean(ooitVerbonden));
+              setNietBereikbaar(!ooitVerbonden);
             },
           })
         : maakOpgeslagenBron({ pad: `/opgeslagen/${bron}.json`, onBericht });
 
     bronRef.current = actieveBron;
+    // Verbinden hoort bij de sessie, niet bij de startknop: er kan een run
+    // lopen die iemand anders startte, en die willen we vanaf het eerste
+    // bericht volgen. De momentopname bij verbinden vertelt of dat zo is.
+    actieveBron.verbind?.();
     return () => actieveBron.stop();
   }, [bron]);
 
-  // Starten ís de reset. Een aparte resetknop vroeg om een handeling die
-  // niemand los wil doen — je reset om opnieuw te kunnen beginnen. Zonder dit
-  // schoonvegen zouden de uitkomsten van de vorige run blijven staan tot de
-  // nieuwe run diezelfde stap overschrijft, en de stappen die de nieuwe run
-  // níét raakt zouden een uitkomst tonen die bij een afgelopen run hoort.
+  // Er is nog steeds geen resetknop — je reset om opnieuw te beginnen, dus dat
+  // is dezelfde handeling. Maar het schoonvegen zit niet meer in de klik: de
+  // stream bepaalt wat er op het dashboard staat.
   //
-  // Ook verbindingWeg gaat hier uit: het bevroren dashboard zegt zelf "start
+  // Gemeten tegen bundel 0.11.0: een tweede start tijdens een lopende run geeft
+  // 409 en er begint niets. Een klik is daarmee geen bewijs meer dat er een run
+  // volgt, en alleen iets wat bewijsbaar begint mag de vorige stand wissen.
+  // `run-gestart` is dat bewijs, en die maakt de plaat zelf leeg.
+  //
+  // Dat het oude schoonvegen tot nu toe geen schade deed, kwam van de knop:
+  // `disabled={running}` houdt hem dicht zolang er een run loopt. Die vlag komt
+  // uit de stream, en juist na een weggevallen verbinding klopt hij niet meer —
+  // dan staat de knop open terwijl er aan de andere kant nog een run loopt. Op
+  // zo'n leunende garantie hoort dit niet te staan.
+  //
+  // Een opgeslagen opname is de uitzondering: daar ís starten opnieuw afspelen,
+  // dat kan niet op een 409 stuiten, en de opname die bij stap 3 begint heeft
+  // geen `run-gestart` om achter te schuilen.
+  //
+  // verbindingWeg gaat hier wél uit: het bevroren dashboard zegt zelf "start
   // opnieuw om verder te kijken", dus dát is het moment waarop de laatste
   // bekende stand geen bewering meer is.
-  const start = useCallback((scenarioId) => {
-    bronRef.current?.stop();
-    setState(initState());
-    setVerbindingWeg(false);
-    return bronRef.current?.start(scenarioId);
-  }, []);
+  const start = useCallback(
+    (scenarioId) => {
+      setVerbindingWeg(false);
+      if (bron !== 'live') setState(initState());
+      return bronRef.current?.start(scenarioId);
+    },
+    [bron]
+  );
 
   const waarde = useMemo(
     () => ({
@@ -84,6 +117,7 @@ export function LiveRunProvider({ children }) {
       setBron,
       connected,
       verbindingWeg,
+      nietBereikbaar,
       // Valt de verbinding weg, dan loopt er voor ons niets meer: er komt geen
       // run-afgerond meer binnen, dus zonder dit zou de knop eeuwig op
       // "bezig..." blijven staan. Opnieuw starten is de herstelactie.
@@ -96,7 +130,7 @@ export function LiveRunProvider({ children }) {
       runGestopt: isGeeindigdMetStop(state.reden),
       start,
     }),
-    [bron, connected, verbindingWeg, state, start]
+    [bron, connected, verbindingWeg, nietBereikbaar, state, start]
   );
 
   return <LiveRunContext.Provider value={waarde}>{children}</LiveRunContext.Provider>;

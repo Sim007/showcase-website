@@ -2,9 +2,11 @@ import { describe, it, expect, vi, beforeEach } from 'vitest';
 import { renderHook, act } from '@testing-library/react';
 
 // De transportlaag wordt hier vervangen: het gaat om wat de provider met de
-// state doet bij een start, niet om EventSource.
+// state doet bij een start, niet om EventSource. Ook de opgeslagen bron is
+// gemockt — die zou anders echt gaan fetchen naar /opgeslagen/*.json.
 const h = vi.hoisted(() => ({
-  bron: { start: vi.fn(), stop: vi.fn(), verbreek: vi.fn() },
+  bron: { verbind: vi.fn(), start: vi.fn(), stop: vi.fn(), verbreek: vi.fn() },
+  opgeslagen: { start: vi.fn(), stop: vi.fn() },
   onBericht: null,
   onVerbindingWeg: null,
 }));
@@ -17,29 +19,130 @@ vi.mock('./contract/eventSourceBron.js', () => ({
   },
 }));
 
+vi.mock('./contract/opgeslagenBron.js', () => ({
+  maakOpgeslagenBron: ({ onBericht }) => {
+    h.onBericht = onBericht;
+    return h.opgeslagen;
+  },
+}));
+
 import { LiveRunProvider, useLiveRun } from './LiveRunProvider.jsx';
 
 const wrapper = ({ children }) => <LiveRunProvider>{children}</LiveRunProvider>;
 
+// Een run die tot en met stap 1 gekomen is, zodat er iets op het dashboard
+// staat dat verloren kan gaan.
+function speelEenLopendeRun() {
+  h.onBericht({ soort: 'run-gestart', runId: 'run-7c41a9', scenarioId: '01' });
+  h.onBericht({ soort: 'stap-gestart', stapNummer: 1, tijd: '2026-08-17T08:00:00Z' });
+  h.onBericht({ soort: 'cli-uitvoer', stapNummer: 1, regel: '$ ci/pipeline-contract.sh payment' });
+  h.onBericht({ soort: 'stap-afgerond', stapNummer: 1, uitkomst: 'geslaagd', tijd: '2026-08-17T08:00:01Z' });
+  h.onBericht({ soort: 'stap-gestart', stapNummer: 2, tijd: '2026-08-17T08:00:02Z' });
+}
+
 describe('LiveRunProvider', () => {
   beforeEach(() => {
+    h.bron.verbind.mockClear();
     h.bron.start.mockClear();
     h.bron.stop.mockClear();
+    h.bron.verbreek.mockClear();
+    h.opgeslagen.start.mockClear();
   });
 
-  // Er is geen resetknop meer: starten ís de reset. Zonder dit schoonvegen
-  // blijft de vorige run in beeld staan tot de nieuwe run diezelfde stap
-  // toevallig overschrijft — en de stappen die de nieuwe run níét raakt zouden
-  // een uitkomst tonen die bij een run hoort die al voorbij is.
-  it('veegt de vorige stand schoon voordat de nieuwe run begint', () => {
+  // De stream blijft tussen runs open (run-stream 0.11.0), dus verbinden hoort
+  // bij het begin van de sessie. Wie pas bij Start verbindt, ziet een run die
+  // iemand anders startte helemaal niet.
+  it('verbindt bij het opzetten van de sessie, niet pas bij de eerste start', () => {
+    renderHook(() => useLiveRun(), { wrapper });
+    expect(h.bron.verbind).toHaveBeenCalledTimes(1);
+    expect(h.bron.start).not.toHaveBeenCalled();
+  });
+
+  // Dit is de regel die met 0.11.0 verviel. Sloten we hier af, dan miste de
+  // sessie alles wat er daarna over de stream kwam — inclusief de volgende run.
+  it('koppelt niet los als een run afgerond is', () => {
+    renderHook(() => useLiveRun(), { wrapper });
+
+    act(() => {
+      h.onBericht({ soort: 'run-gestart', runId: 'run-7c41a9', scenarioId: '01' });
+      h.onBericht({ soort: 'run-afgerond', runId: 'run-7c41a9', reden: 'voltooid' });
+    });
+
+    expect(h.bron.verbreek).not.toHaveBeenCalled();
+    expect(h.bron.stop).not.toHaveBeenCalled();
+  });
+
+  it('houdt de verbinding vast bij een start in plaats van hem te vernieuwen', () => {
     const { result } = renderHook(() => useLiveRun(), { wrapper });
 
     act(() => {
-      h.onBericht({ soort: 'run-gestart', runId: 'r1', scenarioId: '01' });
-      h.onBericht({ soort: 'stap-gestart', stapNummer: 1, tijd: '2026-08-17T08:00:00Z' });
+      result.current.start('01');
     });
-    expect(result.current.stappen.size).toBe(1);
+
+    expect(h.bron.start).toHaveBeenCalledWith('01');
+    expect(h.bron.stop).not.toHaveBeenCalled();
+    expect(h.bron.verbreek).not.toHaveBeenCalled();
+  });
+
+  // Gemeten tegen stubbundel 0.11.0: een tweede start tijdens een lopende run
+  // geeft 409 en er begint niets. Zou de klik de plaat schoonvegen, dan liep die
+  // run door op een leeg dashboard: de stappen die al af waren stonden weer op
+  // "wachtend" en werden nooit meer gevuld, want hun berichten zijn voorbij. In
+  // de pagina houdt `disabled={running}` die klik meestal tegen — maar die vlag
+  // komt uit de stream, en hier wordt de regel zelf vastgelegd in plaats van de
+  // knop die hem tot nu toe afdekte.
+  it('gooit de lopende run niet weg als de start op niets uitloopt', () => {
+    h.bron.start.mockResolvedValueOnce({ ok: false, fout: { code: 'RUN_LOOPT_AL' } });
+    const { result } = renderHook(() => useLiveRun(), { wrapper });
+
+    act(() => {
+      speelEenLopendeRun();
+    });
+    expect(result.current.stappen.get(1).uitkomst).toBe('groen');
+
+    act(() => {
+      result.current.start('01');
+    });
+
+    expect(result.current.stappen.get(1).uitkomst).toBe('groen');
+    expect(result.current.cliRegels.get(1)).toHaveLength(1);
     expect(result.current.running).toBe(true);
+  });
+
+  // Er is nog steeds geen resetknop — maar het schoonvegen komt nu van de
+  // stream: `run-gestart` is het bewijs dat er echt een run begon.
+  it('veegt de vorige stand schoon zodra er een nieuwe run gestart is', () => {
+    const { result } = renderHook(() => useLiveRun(), { wrapper });
+
+    act(() => {
+      speelEenLopendeRun();
+      h.onBericht({ soort: 'run-afgerond', runId: 'run-7c41a9', reden: 'voltooid' });
+    });
+    expect(result.current.stappen.size).toBe(2);
+
+    act(() => {
+      result.current.start('01');
+      h.onBericht({ soort: 'run-gestart', runId: 'run-3b8e02', scenarioId: '01' });
+    });
+
+    expect(result.current.stappen.size).toBe(0);
+    expect(result.current.cliRegels.size).toBe(0);
+    expect(result.current.running).toBe(true);
+  });
+
+  // Bij een opgeslagen opname is starten opnieuw afspelen. Dat kan niet op een
+  // 409 stuiten, en de opname die bij stap 3 begint heeft geen `run-gestart`
+  // die de plaat voor ons leegmaakt.
+  it('veegt bij een opgeslagen opname wél schoon op de klik', () => {
+    const { result } = renderHook(() => useLiveRun(), { wrapper });
+
+    act(() => {
+      result.current.setBron('midden');
+    });
+    act(() => {
+      speelEenLopendeRun();
+    });
+    expect(result.current.stappen.size).toBe(2);
 
     act(() => {
       result.current.start('01');
@@ -47,22 +150,7 @@ describe('LiveRunProvider', () => {
 
     expect(result.current.stappen.size).toBe(0);
     expect(result.current.cliRegels.size).toBe(0);
-    expect(result.current.running).toBe(false);
-    expect(result.current.scenarioId).toBe(null);
-  });
-
-  it('stopt de lopende bron vóór het starten, niet erna', () => {
-    const { result } = renderHook(() => useLiveRun(), { wrapper });
-
-    act(() => {
-      result.current.start('01');
-    });
-
-    expect(h.bron.stop).toHaveBeenCalledTimes(1);
-    expect(h.bron.start).toHaveBeenCalledWith('01');
-    expect(h.bron.stop.mock.invocationCallOrder[0]).toBeLessThan(
-      h.bron.start.mock.invocationCallOrder[0]
-    );
+    expect(h.opgeslagen.start).toHaveBeenCalledWith('01');
   });
 
   // Het bevroren dashboard zegt zelf "start opnieuw om verder te kijken" —
@@ -73,7 +161,7 @@ describe('LiveRunProvider', () => {
     const { result } = renderHook(() => useLiveRun(), { wrapper });
 
     act(() => {
-      h.onVerbindingWeg();
+      h.onVerbindingWeg({ ooitVerbonden: true });
     });
     expect(result.current.verbindingWeg).toBe(true);
 
@@ -81,6 +169,21 @@ describe('LiveRunProvider', () => {
       result.current.start('01');
     });
     expect(result.current.verbindingWeg).toBe(false);
+  });
+
+  // Nu er bij sessiestart verbonden wordt, is dit het gewone geval als
+  // showcase-CBT niet draait. Bevriezen zou dan een stand suggereren die er
+  // nooit was, en de pagina onbruikbaar maken voordat je iets gedaan hebt.
+  it('bevriest niet als de verbinding er nooit geweest is', () => {
+    const { result } = renderHook(() => useLiveRun(), { wrapper });
+
+    act(() => {
+      h.onVerbindingWeg({ ooitVerbonden: false });
+    });
+
+    expect(result.current.verbindingWeg).toBe(false);
+    expect(result.current.nietBereikbaar).toBe(true);
+    expect(result.current.connected).toBe(false);
   });
 
   it('biedt geen losse reset meer aan', () => {

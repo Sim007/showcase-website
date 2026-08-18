@@ -11,7 +11,7 @@ export default function Pipeline() {
   const { id } = useParams();
   const {
     dataset, steps, deelsysteemStatussen, error, stamdataUitLokaleKopie,
-    bron, setBron, connected, verbindingWeg, running, scenarioId, start,
+    bron, setBron, connected, verbindingWeg, nietBereikbaar, running, scenarioId, start,
   } = usePipelineRun(id);
   const [uitgeschakeld, setUitgeschakeld] = useState(() => new Set());
 
@@ -54,7 +54,7 @@ export default function Pipeline() {
 
   const runningThisScenario = running && scenarioId === dataset.id;
   const runningOtherScenario = running && scenarioId !== dataset.id;
-  const status = verbindingsStatus({ bron, connected, verbindingWeg, stamdataUitLokaleKopie });
+  const status = verbindingsStatus({ bron, connected, verbindingWeg, nietBereikbaar, stamdataUitLokaleKopie });
   const verkeerdeStamdata = dataset.id !== id;
 
   // Valt de verbinding weg, dan bevriest het hele dashboard in plaats van dat
