@@ -43,10 +43,22 @@ export default function Pipeline() {
     });
   }
 
+  // Zonder stappenlijst valt er niets te tonen, ook geen opgeslagen run: de
+  // stream draagt alleen stapnummers, en welke stap nummer 3 is weet alleen de
+  // stamdata. De bronkeuze hier aanbieden zou dus een weg beloven die er niet
+  // is. Wat er wél hoort te staan is de weg terug — zonder de nav was dit een
+  // doodlopende pagina met alleen de browserknop als uitgang.
   if (error) {
     return (
       <div className="page">
+        <div className="top-nav">
+          <Link className="brand" to="/">← showcase-cbt</Link>
+        </div>
         <p>Kon scenario {id} niet laden: {error}.</p>
+        <p>
+          Er ligt voor dit scenario ook geen meegeleverde kopie van de stappenlijst, dus zonder showcase-CBT
+          is er niets om te tonen — ook geen opgeslagen run. Scenario 01 werkt wel zonder showcase-CBT.
+        </p>
       </div>
     );
   }
@@ -130,6 +142,19 @@ export default function Pipeline() {
         <div className="melding">
           showcase-CBT was niet bereikbaar; de stappen hieronder komen uit een meegeleverde kopie. Ze kloppen
           met het scenario zoals het is opgehaald, maar zijn niet zojuist bij showcase-CBT gecontroleerd.
+        </div>
+      )}
+
+      {/* De simulatie moet zonder showcase-CBT werken, en dat doet hij — maar de
+          weg erheen is een keuzelijst die "live" zegt, naast een indicator die
+          zegt dat er geen verbinding is. Gemeten met showcase-CBT uit: niets op
+          de pagina wijst die weg aan, dus je moest hem kennen. Starten kan hier
+          niet, en dat is precies het moment om te zeggen wat wél kan. */}
+      {bron === 'live' && nietBereikbaar && (
+        <div className="melding">
+          showcase-CBT is niet bereikbaar, dus er valt nu geen nieuwe run te starten. Kies linksboven bij de
+          bronkeuze een opgeslagen run — dat is een eerder vastgelegde stream, die volledig zonder
+          showcase-CBT afspeelt.
         </div>
       )}
 

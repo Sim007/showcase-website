@@ -90,3 +90,41 @@ describe('Pipeline — bevroren dashboard', () => {
     expect(screen.getByRole('button', { name: 'Start scenario' })).toBeEnabled();
   });
 });
+
+// De eis is dat de simulatiemodus zonder showcase-CBT werkt. Functioneel doet
+// hij dat; wat ontbrak was dat de pagina die weg aanwees. Zonder verbinding is
+// starten het enige wat niet kan, en dus het moment om te zeggen wat wel kan.
+describe('Pipeline — showcase-CBT niet bereikbaar', () => {
+  beforeEach(() => {
+    h.waarde = null;
+  });
+
+  it('wijst naar de opgeslagen runs als er geen verbinding te maken is', () => {
+    toon({ nietBereikbaar: true });
+    expect(screen.getByText(/kies linksboven bij de bronkeuze een opgeslagen run/i)).toBeInTheDocument();
+  });
+
+  it('bevriest daarvoor niet — er is geen stand die verloren gaat', () => {
+    const { container } = toon({ nietBereikbaar: true });
+    expect(container.querySelector('.pipeline-page.bevroren')).toBeNull();
+    for (const vakje of screen.getAllByRole('checkbox')) {
+      expect(vakje).toBeEnabled();
+    }
+  });
+
+  // Staat er al een opgeslagen run aan, dan is de tip beantwoord en zou hij
+  // alleen nog ruis zijn boven een dashboard dat gewoon werkt.
+  it('zwijgt zodra er een opgeslagen run gekozen is', () => {
+    toon({ nietBereikbaar: true, bron: 'voltooid' });
+    expect(screen.queryByText(/kies linksboven bij de bronkeuze/i)).not.toBeInTheDocument();
+  });
+
+  // Zonder stamdata valt er niets te tonen, ook geen opgeslagen run. Dan hoort
+  // er in elk geval een uitgang te zijn: dit was een pagina met alleen de
+  // browserknop terug.
+  it('houdt de weg terug open als de stappenlijst helemaal ontbreekt', () => {
+    toon({ dataset: null, error: 'Failed to fetch' });
+    expect(screen.getByRole('link', { name: /showcase-cbt/i })).toBeInTheDocument();
+    expect(screen.getByText(/ook geen opgeslagen run/i)).toBeInTheDocument();
+  });
+});

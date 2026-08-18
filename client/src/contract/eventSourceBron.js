@@ -71,11 +71,23 @@ export function maakLiveBron({ apiBase, onBericht, onOpen, onLosgekoppeld, onVer
     // hij weg, dan is de startknop de herstelactie — en verbind() is een no-op
     // zolang er een stream staat, dus hier ontstaat nooit een tweede.
     verbind();
-    const res = await fetch(`${apiBase}/v1/runs`, {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ scenarioId }),
-    });
+    let res;
+    try {
+      res = await fetch(`${apiBase}/v1/runs`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ scenarioId }),
+      });
+    } catch (netwerkfout) {
+      // showcase-CBT is er niet. Dat is een uitkomst van het starten en geen
+      // programmeerfout, dus hij hoort hier dezelfde vorm te krijgen als een
+      // afwijzing. Gemeten met showcase-CBT uit: zonder dit komt de afwijzing
+      // als onopgevangen `TypeError: Failed to fetch` naar boven, want de
+      // aanroeper in de pagina hangt er geen catch aan — een klik die niets
+      // deed, met een fout in de console als enige spoor.
+      console.warn('start mislukt: showcase-CBT niet bereikbaar', netwerkfout);
+      return { ok: false, fout: null };
+    }
     if (!res.ok) {
       // Verbonden blijven, wat de reden ook is. Bij een 409 loopt er al een run
       // en die volgen we juist over deze verbinding; bij een 400 of 404 is de

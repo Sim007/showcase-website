@@ -5,8 +5,9 @@ import ReportTable from '../components/ReportTable.jsx';
 
 export default function Report() {
   const { id } = useParams();
-  const { dataset, steps, error, bron, connected, verbindingWeg, stamdataUitLokaleKopie } = usePipelineRun(id);
-  const status = verbindingsStatus({ bron, connected, verbindingWeg, stamdataUitLokaleKopie });
+  const { dataset, steps, error, bron, connected, verbindingWeg, nietBereikbaar, stamdataUitLokaleKopie } =
+    usePipelineRun(id);
+  const status = verbindingsStatus({ bron, connected, verbindingWeg, nietBereikbaar, stamdataUitLokaleKopie });
 
   if (error) {
     return (

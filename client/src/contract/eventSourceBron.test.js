@@ -128,6 +128,18 @@ describe('maakLiveBron', () => {
     expect(NepEventSource.instanties[0].gesloten).toBe(false);
   });
 
+  // Gemeten met showcase-CBT uit: fetch wijst niet af met een respons maar
+  // gooit. Zonder dit kwam dat als onopgevangen TypeError naar boven, want de
+  // pagina hangt geen catch aan de klik.
+  it('levert een uitkomst in plaats van te gooien als showcase-CBT er niet is', async () => {
+    global.fetch = vi.fn(async () => {
+      throw new TypeError('Failed to fetch');
+    });
+    const bron = maakLiveBron(opties());
+    const uitkomst = await bron.start('01');
+    expect(uitkomst.ok).toBe(false);
+  });
+
   it('geeft het runId uit de 201 door — dat is de run die daadwerkelijk gaat spelen', async () => {
     const bron = maakLiveBron(opties());
     bron.verbind();

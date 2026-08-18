@@ -213,5 +213,18 @@ lokaal een schone `npm audit` verwachten heeft geen zin.
   (`voltooid` = `run-7c41a9`, `gestopt` = `run-3b8e02`, `begint bij stap 3` = `run-9d15f4`). Die
   laatste opent met een momentopname van een run die al loopt en zonder `run-gestart` — dat is de
   enige plek waar dat geval nog te zien is, want tegen de bundel is *instappen* tijdens een
-  lopende run niet meer na te bootsen. Voor de andere scenario's is er geen kopie. Er is bewust geen `scenario-00.json` aangemaakt: de stub levert
+  lopende run niet meer na te bootsen. Voor de andere scenario's is er geen kopie.
+
+  **Een simulatie ís een opgeslagen stream** — dat is de eis, en hij geldt onverkort: de
+  simulatiemodus moet werken zonder verbinding en zonder showcase-CBT. Gemeten vanaf een verse
+  sessie met showcase-CBT uit: scenario 01 haalt dat. De pagina bouwt op de meegeleverde
+  stamdatakopie, bevriest niet, de bronkeuze en de deelsysteem-vakjes werken, een opgeslagen run
+  speelt volledig af en het rapport houdt hem vast. Voor de scenario's zonder kopie valt er
+  niets te tonen — de stream draagt alleen stapnummers, dus zonder stamdata is niet te weten
+  welke stap nummer 3 is. Die pagina zegt dat nu, met een weg terug, in plaats van alleen een
+  fetch-fout.
+
+  Wat nog wél een besluit vraagt: de landingspagina noemt de simulatiemodus niet. Wie het pad
+  niet kent, ziet alleen tegels. De intro is eigen content (`content/intro.md`, beheerd door de
+  testconsultant), dus dat is geen codewijziging maar een tekstkeuze. Er is bewust geen `scenario-00.json` aangemaakt: de stub levert
   voor élk id de inhoud van 01, dus zo'n bestand zou scenario 01 zijn met "00" erboven.
