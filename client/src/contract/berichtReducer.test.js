@@ -1,40 +1,44 @@
 import { describe, it, expect } from 'vitest';
 import { initState, reduceerBericht, isGeeindigdMetStop } from './berichtReducer.js';
 
-// Letterlijk de 'gestopt'-fixture uit de showcase-cbt stubbundel (0.10.0):
-// stap 3 mislukt, stap 4/5/6 krijgen geen enkel bericht.
+// Letterlijk de 'gestopt'-fixture uit de showcase-cbt stubbundel (0.11.0):
+// stap 3 mislukt, stap 4/5/6 krijgen geen enkel bericht. Elke opname heeft sinds
+// 0.11.0 zijn eigen runId — 'gestopt' is run-3b8e02.
 const GESTOPT_STREAM = [
   { soort: 'momentopname', tijd: '2026-08-06T09:12:44Z', run: null, afgerondeStappen: [] },
-  { soort: 'run-gestart', tijd: '2026-08-06T09:12:45Z', runId: 'run-7c41a9', scenarioId: '01' },
-  { soort: 'stap-gestart', tijd: '2026-08-06T09:12:46Z', runId: 'run-7c41a9', stapNummer: 1 },
-  { soort: 'cli-uitvoer', tijd: '2026-08-06T09:12:47Z', runId: 'run-7c41a9', stapNummer: 1, regel: '$ ci/pipeline-contract.sh payment payment-api 1.0.0' },
-  { soort: 'stap-afgerond', tijd: '2026-08-06T09:12:48Z', runId: 'run-7c41a9', stapNummer: 1, uitkomst: 'geslaagd' },
-  { soort: 'stap-gestart', tijd: '2026-08-06T09:12:49Z', runId: 'run-7c41a9', stapNummer: 2 },
-  { soort: 'cli-uitvoer', tijd: '2026-08-06T09:12:50Z', runId: 'run-7c41a9', stapNummer: 2, regel: '$ ci/pipeline-microservice.sh payment payment-api' },
-  { soort: 'stap-afgerond', tijd: '2026-08-06T09:12:51Z', runId: 'run-7c41a9', stapNummer: 2, uitkomst: 'geslaagd' },
-  { soort: 'stap-gestart', tijd: '2026-08-06T09:12:52Z', runId: 'run-7c41a9', stapNummer: 3 },
-  { soort: 'cli-uitvoer', tijd: '2026-08-06T09:12:53Z', runId: 'run-7c41a9', stapNummer: 3, regel: '$ ci/pipeline-ci.sh payment 1.0.0' },
-  { soort: 'stap-afgerond', tijd: '2026-08-06T09:12:54Z', runId: 'run-7c41a9', stapNummer: 3, uitkomst: 'mislukt' },
-  { soort: 'run-afgerond', tijd: '2026-08-06T09:12:55Z', runId: 'run-7c41a9', reden: 'gestopt', gestoptBijStap: 3 },
+  { soort: 'run-gestart', tijd: '2026-08-06T09:12:45Z', runId: 'run-3b8e02', scenarioId: '01' },
+  { soort: 'stap-gestart', tijd: '2026-08-06T09:12:46Z', runId: 'run-3b8e02', stapNummer: 1 },
+  { soort: 'cli-uitvoer', tijd: '2026-08-06T09:12:47Z', runId: 'run-3b8e02', stapNummer: 1, regel: '$ ci/pipeline-contract.sh payment payment-api 1.0.0 contracts/payment/payment-api/1.0.0/openapi.yaml' },
+  { soort: 'stap-afgerond', tijd: '2026-08-06T09:12:48Z', runId: 'run-3b8e02', stapNummer: 1, uitkomst: 'geslaagd' },
+  { soort: 'stap-gestart', tijd: '2026-08-06T09:12:49Z', runId: 'run-3b8e02', stapNummer: 2 },
+  { soort: 'cli-uitvoer', tijd: '2026-08-06T09:12:50Z', runId: 'run-3b8e02', stapNummer: 2, regel: '$ ci/pipeline-microservice.sh payment payment-api' },
+  { soort: 'stap-afgerond', tijd: '2026-08-06T09:12:51Z', runId: 'run-3b8e02', stapNummer: 2, uitkomst: 'geslaagd' },
+  { soort: 'stap-gestart', tijd: '2026-08-06T09:12:52Z', runId: 'run-3b8e02', stapNummer: 3 },
+  { soort: 'cli-uitvoer', tijd: '2026-08-06T09:12:53Z', runId: 'run-3b8e02', stapNummer: 3, regel: '$ ci/pipeline-ci.sh payment 1.0.0' },
+  { soort: 'stap-afgerond', tijd: '2026-08-06T09:12:54Z', runId: 'run-3b8e02', stapNummer: 3, uitkomst: 'mislukt' },
+  { soort: 'run-afgerond', tijd: '2026-08-06T09:12:55Z', runId: 'run-3b8e02', reden: 'gestopt', gestoptBijStap: 3 },
 ];
 
-// De kop van de 'midden'-fixture (0.10.0): verbinden terwijl er al een run
-// loopt. Squad showcase-cbt meldt dat de bundel vanaf 0.11.0 gaat roteren op
-// POST /v1/runs en dat 'midden' een run wordt die bij stap 3 begint — dan is
-// dit geval niet meer tegen de bundel te oefenen. Daarom staat het hier, tegen
-// de spec, in plaats van alleen in de fixture.
+// De kop van de 'midden'-fixture (0.11.0): een momentopname van een run die al
+// loopt, zonder `run-gestart` ervoor.
+//
+// Tegen de bundel is dit niet langer een láte kijker: die roteert op
+// POST /v1/runs en stelt zelf geen momentopname samen, dus instappen tijdens een
+// lopende run kun je er niet meer mee oefenen. De berichten die zo'n kijker
+// binnenkreeg zijn wél nog precies deze, en dat is wat de reducer moet kunnen.
+// Daarom staat het hier tegen de spec, en niet alleen in de fixture.
 const LATE_KIJKER = [
   {
     soort: 'momentopname',
     tijd: '2026-08-06T09:12:50Z',
-    run: { runId: 'run-7c41a9', scenarioId: '01', gestartOp: '2026-08-06T09:12:44Z' },
+    run: { runId: 'run-9d15f4', scenarioId: '01', gestartOp: '2026-08-06T09:12:44Z' },
     afgerondeStappen: [
       { stapNummer: 1, uitkomst: 'geslaagd' },
       { stapNummer: 2, uitkomst: 'geslaagd' },
     ],
     lopendeStap: 3,
   },
-  { soort: 'stap-gestart', tijd: '2026-08-06T09:12:51Z', runId: 'run-7c41a9', stapNummer: 3 },
+  { soort: 'stap-gestart', tijd: '2026-08-06T09:12:51Z', runId: 'run-9d15f4', stapNummer: 3 },
 ];
 
 function speelAf(berichten) {
@@ -58,7 +62,9 @@ describe('berichtReducer — gestopt-fixture', () => {
 
   it('accumuleert cli-uitvoer per stap in ontvangstvolgorde', () => {
     const state = speelAf(GESTOPT_STREAM);
-    expect(state.cliRegels.get(1)).toEqual(['$ ci/pipeline-contract.sh payment payment-api 1.0.0']);
+    expect(state.cliRegels.get(1)).toEqual([
+      '$ ci/pipeline-contract.sh payment payment-api 1.0.0 contracts/payment/payment-api/1.0.0/openapi.yaml',
+    ]);
   });
 
   it('zet running op false en bewaart reden + gestoptBijStap na run-afgerond', () => {
@@ -87,7 +93,7 @@ describe('berichtReducer — momentopname van een lopende run (late kijker)', ()
   it('weet dat er een run loopt, met welke en sinds wanneer', () => {
     const state = speelAf([LATE_KIJKER[0]]);
     expect(state.running).toBe(true);
-    expect(state.runId).toBe('run-7c41a9');
+    expect(state.runId).toBe('run-9d15f4');
     expect(state.scenarioId).toBe('01');
     expect(state.lopendeStap).toBe(3);
   });
@@ -112,13 +118,49 @@ describe('berichtReducer — momentopname van een lopende run (late kijker)', ()
     const na = reduceerBericht(speelAf(LATE_KIJKER), {
       soort: 'momentopname',
       tijd: '2026-08-06T09:13:10Z',
-      run: { runId: 'run-7c41a9', scenarioId: '01', gestartOp: '2026-08-06T09:12:44Z' },
+      run: { runId: 'run-9d15f4', scenarioId: '01', gestartOp: '2026-08-06T09:12:44Z' },
       afgerondeStappen: [{ stapNummer: 1, uitkomst: 'geslaagd' }],
       lopendeStap: 2,
     });
     expect(na.stappen.has(3)).toBe(false);
     expect(na.stappen.get(1).uitkomst).toBe('groen');
     expect(na.lopendeStap).toBe(2);
+  });
+
+  // Dezelfde run: de cli-regels blijven staan. Een herverbinding maakt eerder
+  // getoonde uitvoer niet ongeldig, en de momentopname draagt zelf geen cli.
+  it('laat de cli-uitvoer staan bij een momentopname van dezelfde run', () => {
+    const metUitvoer = reduceerBericht(speelAf(LATE_KIJKER), {
+      soort: 'cli-uitvoer', tijd: '2026-08-06T09:12:52Z', runId: 'run-9d15f4', stapNummer: 3, regel: '$ ci/pipeline-ci.sh payment 1.0.0',
+    });
+    const na = reduceerBericht(metUitvoer, {
+      soort: 'momentopname',
+      tijd: '2026-08-06T09:13:10Z',
+      run: { runId: 'run-9d15f4', scenarioId: '01', gestartOp: '2026-08-06T09:12:44Z' },
+      afgerondeStappen: [{ stapNummer: 1, uitkomst: 'geslaagd' }],
+      lopendeStap: 2,
+    });
+    expect(na.cliRegels.get(3)).toHaveLength(1);
+  });
+
+  // Een ander runId: geen herverbinding maar de volgende run. Sinds 0.11.0 komt
+  // dat echt voor — de opname die bij stap 3 begint opent met een momentopname
+  // en heeft geen `run-gestart` die de plaat leegmaakt. Bleef de uitvoer staan,
+  // dan hing die onder stappen die deze momentopname als afgerond opgeeft.
+  it('wist de cli-uitvoer bij een momentopname van een andere run', () => {
+    const na = reduceerBericht(speelAf(GESTOPT_STREAM), {
+      soort: 'momentopname',
+      tijd: '2026-08-06T09:13:10Z',
+      run: { runId: 'run-9d15f4', scenarioId: '01', gestartOp: '2026-08-06T09:12:44Z' },
+      afgerondeStappen: [
+        { stapNummer: 1, uitkomst: 'geslaagd' },
+        { stapNummer: 2, uitkomst: 'geslaagd' },
+      ],
+      lopendeStap: 3,
+    });
+    expect(na.cliRegels.size).toBe(0);
+    expect(na.runId).toBe('run-9d15f4');
+    expect(na.stappen.get(1).uitkomst).toBe('groen');
   });
 });
 

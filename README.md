@@ -27,15 +27,22 @@ docker compose up --build
 **Dit start geen showcase-CBT.** Draai de showcase-cbt stubbundel apart op poort 8090 (zie
 diens `README.md`: `node stub.js`), of zet `CBT_BASE` naar een andere plek vóór het starten.
 
-De verbindingsindicator kent vier standen: *verbonden met showcase-CBT* (we hangen aan de
-stream, bolletje pulseert), *showcase-CBT gereed — nog geen run* (bereikbaar, maar er valt
-niets te volgen), *verbinding met showcase-CBT weggevallen* (rood) en de opgeslagen modus.
+De verbindingsindicator kent vijf standen: *verbonden met showcase-CBT* (we hangen aan de
+stream, bolletje pulseert — sinds de stream de hele sessie openblijft is dit de normale stand,
+niet het teken dat er iets loopt), *showcase-CBT gereed — nog geen run* (verbonden maar de
+eerste momentopname is nog onderweg), *verbinding met showcase-CBT weggevallen* (rood),
+*showcase-CBT niet bereikbaar* (de verbinding kwam nooit tot stand, of de stamdata kwam uit de
+meegeleverde kopie) en de opgeslagen modus.
 
-Twee dingen over die verbinding, allebei met opzet:
+Drie dingen over die verbinding, alle drie met opzet:
 
 - **Er is er één per sessie.** Hij hoort in `client/src/LiveRunProvider.jsx`, boven de paginas,
   niet in de pagina-hook. Anders verbreekt elke stap van dashboard naar rapport de stream en begint
   de runstate leeg — een net afgeronde run stond dan op het rapport weer volledig op "wachtend".
+- **Hij gaat open bij sessiestart, niet bij de startknop.** De stream blijft tussen runs open
+  (run-stream 0.11.0) en de opname roteert op `POST /v1/runs`. Wie pas bij Start verbindt, ziet een
+  run die iemand anders startte helemaal niet; wie meteen verbindt, krijgt bij het openen een
+  momentopname die vertelt of er iets loopt (`run: null` als er niets loopt).
 - **Er wordt niet automatisch herverbonden.** EventSource doet dat standaard na een seconde of
   drie; dan mis je de berichten uit de tussentijd en krijg je een dashboard met gaten dat er
   compleet uitziet. Valt de verbinding weg, dan **bevriest het dashboard**: het vergrijst, er komt
@@ -48,8 +55,21 @@ Twee dingen over die verbinding, allebei met opzet:
   hele beeld te bevriezen hoeft geen enkele status van betekenis te veranderen: dit was de stand,
   en verder weten we het niet.
 
-Dat de stream *tussen* runs dichtgaat is wél tijdelijk: dat vervalt zodra showcase-CBT hem
-openhoudt.
+Dat de stream *tussen* runs dichtging was tijdelijk, en die vervaldatum is bereikt: vanaf
+stubbundel 0.11.0 houdt showcase-CBT hem open, dus wij koppelen niet meer zelf los bij
+`run-afgerond`.
+
+**Eén ding dat de stub niet kan, en waar wij dus tegenaan lopen.** Verbind je midden in een
+lopende run, dan stelt de stub geen momentopname van dat moment samen maar speelt hij de
+opgenómen openingsmomentopname af — en die zegt `run: null`. Gemeten: een tweede verbinding die
+opengaat terwijl `voltooid` op stap 5 staat, krijgt "er loopt niets" en daarna de losse berichten
+van stap 5 en 6. Onze reducer zet dan `scenarioId` op null, waarna `usePipelineRun` die berichten
+niet meer aan het scenario kan koppelen: het dashboard blijft op "wachtend" terwijl de run
+afloopt. Dat raakt precies één pad — opnieuw starten ná een weggevallen verbinding terwijl de
+run aan de andere kant doorliep. Het is een tekort van de stub, niet van de spec (de
+momentopname kán een lopende run dragen), dus er valt aan onze kant niets te repareren zonder
+gedrag te verzinnen: de losse stapberichten dragen geen `scenarioId`, dus we kúnnen niet weten
+bij welk scenario ze horen.
 
 **Stamdata wordt één keer opgehaald en vastgehouden** (`client/src/scenarioBron.js`), met een
 terugval op een meegeleverde kopie in `client/public/opgeslagen/` als showcase-CBT niet bereikbaar
@@ -164,12 +184,13 @@ gerepareerd.
     die bestaat niet meer zonder de simulator. Moeten herschreven worden tegen de dunnere
     contract-voorbeelddata, of tegen een eigen vastgelegde opgeslagen-stream.
   - De suite draait standaard met meerdere parallelle workers tegen **één gedeelde
-    stub-instantie**. De stub geeft per nieuwe verbinding de eerstvolgende run in een vaste
-    rotatie van 3 — meerdere gelijktijdige tests laten daardoor los van elkaar rondlopen in
-    diezelfde rotatie, wat tot niet-reproduceerbare uitkomsten leidt (geconstateerd: een test
-    die keurig een run start, ziet die nooit als "eigen" run omdat een andere, gelijktijdig
-    lopende test intussen de rotatie heeft opgeschoven). Vereist serieel draaien tegen de stub,
-    of een stub-instantie per test/werker — nog niet ingericht.
+    stub-instantie**. De stub geeft bij elke `POST /v1/runs` de eerstvolgende run in een vaste
+    rotatie van 3 (tot 0.10.0 ging dat per nieuwe verbinding) — meerdere gelijktijdige tests
+    laten daardoor los van elkaar rondlopen in diezelfde rotatie, wat tot niet-reproduceerbare
+    uitkomsten leidt (geconstateerd: een test die keurig een run start, ziet die nooit als
+    "eigen" run omdat een andere, gelijktijdig lopende test intussen de rotatie heeft
+    opgeschoven). Vereist serieel draaien tegen de stub, of een stub-instantie per test/werker —
+    nog niet ingericht.
   - `playwright.config.js`'s server-gezondheidscheck (`/api/hoofdstukken`) is al gerepareerd
     naar `/api/content/showcases`, anders start de suite nooit.
 
@@ -187,6 +208,10 @@ lokaal een schone `npm audit` verwachten heeft geen zin.
 - Scenario-inhoud komt van showcase-CBT/de stub, niet van onszelf — zie "Nieuw scenario
   toevoegen" hierboven voor de huidige beperking daarvan.
 - **De opgeslagen modus draait offline, maar alleen voor scenario 01.** Zowel de opgenomen stream
-  als de stamdata liggen er als bestand, dus de pagina werkt zonder showcase-CBT. Voor de andere
-  scenario's is er geen kopie. Er is bewust geen `scenario-00.json` aangemaakt: de stub levert
+  als de stamdata liggen er als bestand, dus de pagina werkt zonder showcase-CBT. De drie opnames
+  zijn letterlijk de fixtures uit stubbundel 0.11.0, met elk hun eigen `runId`
+  (`voltooid` = `run-7c41a9`, `gestopt` = `run-3b8e02`, `begint bij stap 3` = `run-9d15f4`). Die
+  laatste opent met een momentopname van een run die al loopt en zonder `run-gestart` — dat is de
+  enige plek waar dat geval nog te zien is, want tegen de bundel is *instappen* tijdens een
+  lopende run niet meer na te bootsen. Voor de andere scenario's is er geen kopie. Er is bewust geen `scenario-00.json` aangemaakt: de stub levert
   voor élk id de inhoud van 01, dus zo'n bestand zou scenario 01 zijn met "00" erboven.
