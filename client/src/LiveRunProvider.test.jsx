@@ -191,3 +191,111 @@ describe('LiveRunProvider', () => {
     expect(result.current.reset).toBeUndefined();
   });
 });
+
+// Gemeld na de demo bij squad 1. Beide gevallen gingen over hetzelfde: er stond
+// nog een vorige run in beeld op een moment dat dat als nieuw las.
+describe('LiveRunProvider — de vorige run op tijd kwijt', () => {
+  beforeEach(() => {
+    h.bron.verbind.mockClear();
+    h.bron.start.mockClear();
+    h.bron.stop.mockClear();
+    h.bron.verbreek.mockClear();
+    h.opgeslagen.start.mockClear();
+  });
+
+  // Wachten op `run-gestart` bleek te laat: tussen de klik en het eerste bericht
+  // bleef het cli-paneel van de vorige run staan. De 201 is het eerste moment
+  // waarop we weten dát er een run begint.
+  it('veegt schoon zodra de start geaccepteerd is, niet pas bij het eerste bericht', async () => {
+    h.bron.start.mockResolvedValueOnce({ ok: true, run: { runId: 'run-3b8e02', scenarioId: '01' } });
+    const { result } = renderHook(() => useLiveRun(), { wrapper });
+
+    act(() => {
+      speelEenLopendeRun();
+      h.onBericht({ soort: 'run-afgerond', runId: 'run-7c41a9', reden: 'voltooid' });
+    });
+    expect(result.current.cliRegels.size).toBe(1);
+
+    await act(async () => {
+      await result.current.start('01');
+    });
+
+    expect(result.current.stappen.size).toBe(0);
+    expect(result.current.cliRegels.size).toBe(0);
+  });
+
+  // De race die de vergelijking met het runId afdekt: kwamen de eerste berichten
+  // al binnen vóór het antwoord op de POST, dan mag het schoonvegen ze niet
+  // alsnog weggooien.
+  it('laat de berichten staan die vóór het antwoord op de POST al binnenkwamen', async () => {
+    h.bron.start.mockImplementationOnce(async () => {
+      act(() => {
+        h.onBericht({ soort: 'run-gestart', runId: 'run-3b8e02', scenarioId: '01' });
+        h.onBericht({ soort: 'stap-gestart', stapNummer: 1, tijd: '2026-08-17T08:00:00Z' });
+      });
+      return { ok: true, run: { runId: 'run-3b8e02', scenarioId: '01' } };
+    });
+    const { result } = renderHook(() => useLiveRun(), { wrapper });
+
+    await act(async () => {
+      await result.current.start('01');
+    });
+
+    expect(result.current.runId ?? 'run-3b8e02').toBe('run-3b8e02');
+    expect(result.current.stappen.size).toBe(1);
+  });
+
+  it('veegt niet schoon als de start op een 409 uitloopt', async () => {
+    h.bron.start.mockResolvedValueOnce({ ok: false, fout: { code: 'RUN_LOOPT_AL' } });
+    const { result } = renderHook(() => useLiveRun(), { wrapper });
+
+    act(() => {
+      speelEenLopendeRun();
+    });
+
+    await act(async () => {
+      await result.current.start('01');
+    });
+
+    expect(result.current.stappen.get(1).uitkomst).toBe('groen');
+    expect(result.current.cliRegels.size).toBe(1);
+  });
+
+  // Het overzicht bezoeken is het einde van je blik op die run. Anders kijk je
+  // na het hoofdmenu nog naar groene stappen en een vol cli-paneel op een pagina
+  // die net opnieuw geopend voelt.
+  it('vergeet een afgeronde run', () => {
+    const { result } = renderHook(() => useLiveRun(), { wrapper });
+
+    act(() => {
+      speelEenLopendeRun();
+      h.onBericht({ soort: 'run-afgerond', runId: 'run-7c41a9', reden: 'voltooid' });
+    });
+    expect(result.current.stappen.size).toBe(2);
+
+    act(() => {
+      result.current.vergeetAfgerondeRun();
+    });
+
+    expect(result.current.stappen.size).toBe(0);
+    expect(result.current.cliRegels.size).toBe(0);
+  });
+
+  // Een lopende run weggooien is precies de bug waarvoor de state boven de
+  // router staat: dan stond een net begonnen run na één navigatie weer leeg.
+  it('laat een lopende run staan', () => {
+    const { result } = renderHook(() => useLiveRun(), { wrapper });
+
+    act(() => {
+      speelEenLopendeRun();
+    });
+    expect(result.current.running).toBe(true);
+
+    act(() => {
+      result.current.vergeetAfgerondeRun();
+    });
+
+    expect(result.current.stappen.size).toBe(2);
+    expect(result.current.running).toBe(true);
+  });
+});

@@ -1,6 +1,7 @@
 import { Link, useParams } from 'react-router-dom';
 import { usePipelineRun } from '../usePipelineRun.js';
 import { verbindingsStatus } from '../verbindingsStatus.js';
+import { ankerTijd, absoluutLeesbaar } from '../tijdWeergave.js';
 import ReportTable from '../components/ReportTable.jsx';
 
 export default function Report() {
@@ -47,6 +48,16 @@ export default function Report() {
         <div className="melding bevroren-melding">
           Verbinding met showcase-CBT weggevallen — dit is de laatste bekende stand, geen afgerond rapport.
         </div>
+      )}
+
+      {/* Eén absoluut moment, en de kolom rekent daarvandaan. Zo is te zien dát
+          een afgespeelde opname uit het verleden komt, in plaats van dat elke
+          rij een datum toont die niet bij vandaag past. */}
+      {ankerTijd(steps) && (
+        <p className="tijdanker">
+          Eerste stap afgerond op <strong>{absoluutLeesbaar(ankerTijd(steps))}</strong>, volgens showcase-CBT.
+          De kolom “na start” rekent vanaf dat moment.
+        </p>
       )}
 
       <ReportTable steps={steps} labels={deelsysteemLabels} />

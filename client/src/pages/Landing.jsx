@@ -1,12 +1,21 @@
 import { useEffect, useState } from 'react';
 import { fetchIntro, fetchShowcases } from '../api.js';
 import { renderMarkdown } from '../simpleMarkdown.js';
+import { useLiveRun } from '../LiveRunProvider.jsx';
 import ShowcaseTile from '../components/ShowcaseTile.jsx';
 
 export default function Landing() {
   const [intro, setIntro] = useState('');
   const [showcases, setShowcases] = useState([]);
   const [error, setError] = useState(null);
+  const { vergeetAfgerondeRun } = useLiveRun();
+
+  // Hier terugkomen is het einde van je blik op de vorige run: een scenario dat
+  // je hierna opent, hoort leeg te beginnen. Een run die nog loopt blijft staan —
+  // die zie je bij terugkomst gewoon verder lopen.
+  useEffect(() => {
+    vergeetAfgerondeRun();
+  }, [vergeetAfgerondeRun]);
 
   useEffect(() => {
     fetchIntro().then((d) => setIntro(d.markdown)).catch((e) => setError(e.message));

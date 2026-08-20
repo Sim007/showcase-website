@@ -1,6 +1,6 @@
 import { createContext, useCallback, useContext, useEffect, useMemo, useRef, useState } from 'react';
 import { CBT_BASE } from './api.js';
-import { initState, reduceerBericht, isGeeindigdMetStop } from './contract/berichtReducer.js';
+import { initState, startState, reduceerBericht, isGeeindigdMetStop } from './contract/berichtReducer.js';
 import { maakLiveBron } from './contract/eventSourceBron.js';
 import { maakOpgeslagenBron } from './contract/opgeslagenBron.js';
 
@@ -102,19 +102,56 @@ export function LiveRunProvider({ children }) {
   // verbindingWeg gaat hier wél uit: het bevroren dashboard zegt zelf "start
   // opnieuw om verder te kijken", dus dát is het moment waarop de laatste
   // bekende stand geen bewering meer is.
+  // Correctie op het bovenstaande, na een demo bij squad 1: wachten op
+  // `run-gestart` is te laat. Tussen de klik en het eerste bericht bleef de
+  // vorige run in beeld — gemeten 250 ms na de klik nog negen cli-regels van de
+  // voorgaande run, inclusief "niet uitgevoerd, pipeline gestopt". Tegen de stub
+  // is dat een fractie van een seconde, tegen een echte showcase-CBT de
+  // rondgang plus de tijd tot de eerste stap. Het leest als uitvoer van een run
+  // die je net startte, en dat is precies de stille onwaarheid die deze showcase
+  // afwijst.
+  //
+  // Het eerste moment waarop we eerlijk weten dat er een run begint, is de 201.
+  // Die draagt het runId van de opname die gaat spelen, dus daarop schoonvegen
+  // is niet optimistisch maar vastgesteld. Een 409 laat de plaat staan, zoals
+  // hij hoort.
+  //
+  // De vergelijking met het runId maakt het bestand tegen de race: kwamen de
+  // eerste berichten van de nieuwe run al binnen vóór het antwoord op de POST,
+  // dan staat dat runId er al en gooien we die berichten niet weg.
   const start = useCallback(
-    (scenarioId) => {
+    async (scenarioId) => {
       setVerbindingWeg(false);
-      if (bron !== 'live') setState(initState());
-      return bronRef.current?.start(scenarioId);
+      if (bron !== 'live') {
+        setState(initState());
+        return bronRef.current?.start(scenarioId);
+      }
+      const uitkomst = await bronRef.current?.start(scenarioId);
+      const nieuwId = uitkomst?.ok ? uitkomst.run?.runId : null;
+      if (nieuwId) setState((s) => (s.runId === nieuwId ? s : startState(uitkomst.run)));
+      return uitkomst;
     },
     [bron]
   );
+
+  // De runstate leeft boven de router, zodat de stap van dashboard naar rapport
+  // een lopende run niet weggooit. Keerzijde, gemeld na de demo: wie via het
+  // hoofdmenu terugkomt op een scenario, kijkt nog naar de vorige run — groene
+  // stappen en een vol cli-paneel op een pagina die net opnieuw geopend voelt.
+  //
+  // Het overzicht bezoeken is het einde van je blik op die run. Een lopende run
+  // blijft wél staan: die weggooien is exact de bug waarvoor deze state boven de
+  // router is gezet. Vandaar de voorwaarde, en niet een resetknop — er is nog
+  // steeds geen handeling die "wissen" heet.
+  const vergeetAfgerondeRun = useCallback(() => {
+    setState((s) => (s.running ? s : initState()));
+  }, []);
 
   const waarde = useMemo(
     () => ({
       bron,
       setBron,
+      vergeetAfgerondeRun,
       connected,
       verbindingWeg,
       nietBereikbaar,
@@ -130,7 +167,7 @@ export function LiveRunProvider({ children }) {
       runGestopt: isGeeindigdMetStop(state.reden),
       start,
     }),
-    [bron, connected, verbindingWeg, nietBereikbaar, state, start]
+    [bron, connected, verbindingWeg, nietBereikbaar, state, start, vergeetAfgerondeRun]
   );
 
   return <LiveRunContext.Provider value={waarde}>{children}</LiveRunContext.Provider>;

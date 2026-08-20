@@ -16,6 +16,25 @@ export function initState() {
   };
 }
 
+// Verse state voor een run die volgens de 201 gaat beginnen. Het antwoord op
+// `POST /v1/runs` draagt runId én scenarioId, en dat is geen aanname maar wat de
+// andere kant zegt te gaan doen.
+//
+// Dit is nodig omdat een stream niet met `run-gestart` hoeft te beginnen. De stub
+// knipt de openingsmomentopname van een opname af zodra je over een bestaande
+// verbinding start, dus de opname die bij stap 3 begint levert alleen
+// `stap-gestart` en verder — en die berichten dragen geen scenarioId. Zonder deze
+// twee velden kan de stappenlijst er niet aan gekoppeld worden en blijft het
+// dashboard leeg. Gemeten: precies dat gebeurde bij de derde run op een rij.
+export function startState(run) {
+  return {
+    ...initState(),
+    runId: run?.runId ?? null,
+    scenarioId: run?.scenarioId ?? null,
+    running: true,
+  };
+}
+
 function metStap(stappen, nr, patch) {
   const volgende = new Map(stappen);
   volgende.set(nr, { ...volgende.get(nr), ...patch });

@@ -1,10 +1,14 @@
 import { OUTCOME_META } from '../statusMeta.js';
 import { labelVan } from '../deelsysteemLabels.js';
+import { ankerTijd, verstrekenSinds, absoluutLeesbaar } from '../tijdWeergave.js';
 
 // Herziene rapportstructuur: unieke nummering, omgeving inclusief Code,
 // een expliciete kolom voor het staptype (actie/gate), en het deelsysteem
 // waar de stap bij hoort (payment/order/keten).
 export default function ReportTable({ steps, labels = {} }) {
+  // Tijden ten opzichte van de start van deze run — zie tijdWeergave.js voor
+  // waarom niet absoluut.
+  const anker = ankerTijd(steps);
   return (
     <table className="report-table">
       <thead>
@@ -16,7 +20,7 @@ export default function ReportTable({ steps, labels = {} }) {
           <th>Stap</th>
           <th>CLI-regel</th>
           <th>Uitkomst</th>
-          <th>Tijd</th>
+          <th title="Tijd na de start van deze run, volgens showcase-CBT">Na start</th>
           <th>Bijzonderheden</th>
         </tr>
       </thead>
@@ -36,7 +40,9 @@ export default function ReportTable({ steps, labels = {} }) {
                   {outcome.glyph} {outcome.label}
                 </span>
               </td>
-              <td className="tijd">{step.tijd || '—'}</td>
+              <td className="tijd" title={absoluutLeesbaar(step.tijd) || ''}>
+                {verstrekenSinds(anker, step.tijd) || '—'}
+              </td>
               <td className="bijzonderheden">{step.bijzonderheden}</td>
             </tr>
           );

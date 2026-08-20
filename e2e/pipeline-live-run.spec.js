@@ -70,9 +70,19 @@ test('een run loopt van wachtend naar een eindtoestand en laat geen stap halverw
 
   const stand = await standPerStap(page);
   expect(stand).toHaveLength(scenario.stappen.length);
-  for (const stap of stand) {
-    expect(EINDTOESTANDEN, `stap ${stap.nr} bleef op ${stap.status} staan`).toContain(stap.status);
-  }
+
+  // Niets blijft op "lopend" hangen: dat is een bewering dat er nú iets draait,
+  // en na `run-afgerond` is die onwaar.
+  expect(stand.filter((s) => s.status === 'status-lopend')).toHaveLength(0);
+  expect(stand.some((s) => EINDTOESTANDEN.includes(s.status))).toBe(true);
+
+  // Hier staat met opzet niet "geen enkele stap blijft wachtend". Eén van de drie
+  // opnames is een run die bij stap 3 begint, en de stub knipt de
+  // openingsmomentopname eraf zodra je over een bestaande verbinding start — die
+  // eerste twee stappen krijgen dan nooit een bericht en blijven dus terecht
+  // wachtend. Welke opname speelt weten we niet, dus die eis zou hier per
+  // rotatiestand kloppen of niet. Deterministisch staat hij in
+  // `pipeline-opgeslagen.spec.js`, waar wij de opname kiezen.
 
   // De domeinregel, voorwaardelijk zodat hij ook klopt voor een run waarin niets
   // mislukt: valt er een stap om, dan komt er daarna niets meer aan de beurt en
