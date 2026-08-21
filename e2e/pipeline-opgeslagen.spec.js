@@ -29,6 +29,14 @@ function speelduurMs(key) {
   return Math.max(15_000, span + 15_000);
 }
 
+// Het testbudget komt uit dezelfde bron als de wachttijd zelf. Hier stond 180
+// seconden, en dat is dezelfde soort aanname als "20 stappen": ruim vandaag, want
+// de langste opname speelt 21 seconden, en een gok zodra de inhoud groeit. Bij
+// bundel 0.12.0 wordt een volledige run van 01 27 stappen en 84 berichten, dus
+// dan schuift dit mee zonder dat iemand het getal aanraakt. `keer` is hoeveel
+// keer een test op de speelduur wacht.
+const testbudgetMs = (key, keer = 1) => keer * speelduurMs(key) + 60_000;
+
 async function standPerStap(page) {
   return page.locator('.graph .node').evaluateAll((nodes) =>
     nodes.map((n) => ({
@@ -47,7 +55,7 @@ async function speelOpname(page, key) {
 }
 
 test('de opname waarin alles slaagt maakt elke stap groen', async ({ page, request }) => {
-  test.setTimeout(180_000);
+  test.setTimeout(testbudgetMs('voltooid'));
   const scenario = await haalStamdata(request, SCENARIO);
   await page.goto(`/scenario/${SCENARIO}`);
 
@@ -62,7 +70,7 @@ test('de opname waarin alles slaagt maakt elke stap groen', async ({ page, reque
 // staat in plaats van in de live-spec: een deelsysteem dat niets fout deed krijgt
 // niets, en het dashboard zegt dat in plaats van het eeuwig te laten wachten.
 test('de gestopte opname zet alles na de mislukte stap op niet uitgevoerd, ook een deelsysteem dat nooit begon', async ({ page, request }) => {
-  test.setTimeout(180_000);
+  test.setTimeout(testbudgetMs('gestopt'));
   const scenario = await haalStamdata(request, SCENARIO);
   await page.goto(`/scenario/${SCENARIO}`);
 
@@ -106,7 +114,8 @@ test('de gestopte opname zet alles na de mislukte stap op niet uitgevoerd, ook e
 // stappen meteen in, zonder `run-gestart` ervoor. Dat is de plaat die een late
 // kijker kreeg, en de enige plek waar dat geval nog te zien is.
 test('de opname die bij een lopende run instapt is meteen compleet', async ({ page, request }) => {
-  test.setTimeout(180_000);
+  // Twee keer: eerst op de tussenstand, daarna op het einde.
+  test.setTimeout(testbudgetMs('midden', 2));
   const scenario = await haalStamdata(request, SCENARIO);
   await page.goto(`/scenario/${SCENARIO}`);
 

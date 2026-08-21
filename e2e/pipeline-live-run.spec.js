@@ -1,8 +1,10 @@
 import { test, expect } from '@playwright/test';
 import { haalStamdata } from './stamdata.js';
 
-// De enige specs die daadwerkelijk een run starten. Twee dingen maken ze
-// bewust blind voor de inhoud van die run:
+// De specs die een run tegen de stub starten en het verloop ervan naspelen.
+// (`landing.spec.js` start er ook een, maar kijkt alleen of de gestarte run bij
+// de tegel hoort.) Twee dingen maken deze specs bewust blind voor de inhoud van
+// die run:
 //
 // 1. De stub roteert bij elke `POST /v1/runs` naar de volgende opname, en welke
 //    dat is hangt af van hoeveel er in dit stubproces al gestart zijn. Een test
