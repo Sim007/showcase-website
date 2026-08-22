@@ -188,6 +188,24 @@ gerepareerd.
   "waartegen is dit getoetst" in de repo in plaats van in iemands geheugen. Het script is
   idempotent, dus het mag vóór elke run.
 
+  **Wat wij afspelen komt uit de bundel — en dat wordt getoetst.** De vier bestanden onder
+  `client/public/opgeslagen/` en onze kopie van `berichten-ontvangst.json` waren met de hand
+  overgenomen uit de bundel. Ze waren inhoudelijk gelijk (nagemeten, bericht voor bericht), maar
+  niets hield dat zo — een afspraak op de plek waar een gate hoort. `scripts/opnames.mjs` leidt ze
+  nu af: de opnames uit `runs/*.jsonl`, de lokale stamdatakopie uit de route voor
+  `GET /v1/scenarios/:id` in `stub-data.json`, het berichtschema uit `schemas/`.
+  - `npm run opnames` toetst en meldt afwijkingen; `npm run opnames:schrijf` leidt ze opnieuw af.
+  - De toets loopt mee in `npm run test:e2e` (`e2e/opnames.spec.js`) en als eigen stap in CI, dus
+    hij is niet over te slaan.
+  - Hij vergelijkt op inhoud, niet op bytes: opmaak en regeleindes zijn geen bewering over de run,
+    en git zet ze op Windows toch om.
+  - Vier dingen laat hij niet passeren, alle vier op een gebroken boom aangetoond: een gewijzigd
+    bericht, een bestand dat wij afspelen maar de bundel niet heeft, een opname uit de bundel
+    waarvan wij geen kopie hebben, en **twee opnames met hetzelfde `runId`** — dat laatste laat in
+    de live-modus cli-regels van de vorige run onder de stappen van de volgende staan (zie
+    `docs/reactie-20260822.md`). Komt er een opname van scenario 00 bij, dan valt deze toets dus
+    om met "de bundel heeft een opname die wij niet afspelen", en dat is het signaal dat we willen.
+
   **Eén werker, niet parallel, en dat is een voorwaarde en geen afweging.** De stub deelt één
   rotatie van drie opnames: elke `POST /v1/runs` schuift hem op (tot 0.10.0 ging dat per nieuwe
   verbinding). Twee specs tegelijk schuiven de rotatie onder elkaar weg.
@@ -257,7 +275,8 @@ lokaal een schone `npm audit` verwachten heeft geen zin.
   toevoegen" hierboven voor de huidige beperking daarvan.
 - **De opgeslagen modus draait offline, maar alleen voor scenario 01.** Zowel de opgenomen stream
   als de stamdata liggen er als bestand, dus de pagina werkt zonder showcase-CBT. De drie opnames
-  zijn letterlijk de fixtures uit stubbundel 0.11.0, met elk hun eigen `runId`
+  zijn de opnames uit stubbundel 0.11.0 — niet overgenomen maar **afgeleid**, zie "Wat wij
+  afspelen komt uit de bundel" hieronder — met elk hun eigen `runId`
   (`voltooid` = `run-7c41a9`, `gestopt` = `run-3b8e02`, `begint bij stap 3` = `run-9d15f4`). Die
   laatste opent met een momentopname van een run die al loopt en zonder `run-gestart` — dat is de
   enige plek waar dat geval nog te zien is, want tegen de bundel is *instappen* tijdens een

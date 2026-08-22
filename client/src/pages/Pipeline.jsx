@@ -11,7 +11,7 @@ export default function Pipeline() {
   const { id } = useParams();
   const {
     dataset, steps, deelsysteemStatussen, error, stamdataUitLokaleKopie,
-    deelsysteemLabels, bron, setBron, connected, verbindingWeg, nietBereikbaar, running, scenarioId, start,
+    deelsysteemLabels, bron, setBron, connected, verbindingWeg, nietBereikbaar, bronFout, running, scenarioId, start,
   } = usePipelineRun(id);
   const [uitgeschakeld, setUitgeschakeld] = useState(() => new Set());
 
@@ -155,6 +155,16 @@ export default function Pipeline() {
           showcase-CBT is niet bereikbaar, dus er valt nu geen nieuwe run te starten. Kies linksboven bij de
           bronkeuze een opgeslagen run — dat is een eerder vastgelegde stream, die volledig zonder
           showcase-CBT afspeelt.
+        </div>
+      )}
+
+      {/* Een opgeslagen run die niet te laden is. Zonder deze melding veert de
+          knop terug en gebeurt er niets — de storing die het langst duurt voordat
+          iemand hem begrijpt. De tekst uit de bron zegt wat er mis is (bestaat
+          niet, geen JSON, geen lijst), dus die gaat mee in beeld. */}
+      {bronFout && (
+        <div className="melding">
+          De gekozen opgeslagen run is niet af te spelen: {bronFout}. Kies linksboven een andere bron.
         </div>
       )}
 

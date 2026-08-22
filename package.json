@@ -6,6 +6,8 @@
   "scripts": {
     "stub:haal": "node scripts/haal-stubbundel.mjs",
     "stub": "npm run stub:haal && node .stub/bundel/stub.js",
+    "opnames": "node scripts/opnames.mjs",
+    "opnames:schrijf": "node scripts/opnames.mjs --schrijf",
     "test:e2e": "playwright test"
   },
   "devDependencies": {

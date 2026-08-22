@@ -4,18 +4,9 @@ import { initState, startState, reduceerBericht, isGeeindigdMetStop } from './co
 import { maakLiveBron } from './contract/eventSourceBron.js';
 import { maakOpgeslagenBron } from './contract/opgeslagenBron.js';
 
-export const OPGESLAGEN_VARIANTEN = [
-  { key: 'voltooid', label: 'opgeslagen run: voltooid' },
-  { key: 'gestopt', label: 'opgeslagen run: gestopt' },
-  // 'midden' heette zo omdat je er middenin een run instapte. Tegen de bundel
-  // is dat niet meer te doen — die roteert op POST en stelt zelf geen
-  // momentopname samen — maar deze opname begint nog steeds met een
-  // momentopname van een lópende run: stap 1 en 2 afgerond, stap 3 bezig, geen
-  // `run-gestart`. Wat hier verdwenen is, is het instappen zelf, niet de
-  // berichten die je er als late kijker van kreeg. Vandaar een label over de
-  // opname en niet over de kijker.
-  { key: 'midden', label: 'opgeslagen run: begint bij stap 3' },
-];
+// De lijst zelf staat in een eigen module zodat scripts/opnames.mjs hem kan
+// lezen; hier alleen doorgegeven, want dit is waar de rest van de app hem haalt.
+export { OPGESLAGEN_VARIANTEN } from './opgeslagenVarianten.js';
 
 const LiveRunContext = createContext(null);
 
@@ -33,6 +24,7 @@ export function LiveRunProvider({ children }) {
   const [connected, setConnected] = useState(false);
   const [verbindingWeg, setVerbindingWeg] = useState(false);
   const [nietBereikbaar, setNietBereikbaar] = useState(false);
+  const [bronFout, setBronFout] = useState(null);
   const bronRef = useRef(null);
 
   useEffect(() => {
@@ -40,6 +32,7 @@ export function LiveRunProvider({ children }) {
     setConnected(false);
     setVerbindingWeg(false);
     setNietBereikbaar(false);
+    setBronFout(null);
 
     // Alleen nog reduceren. Loskoppelen bij `run-afgerond` hoorde bij een stream
     // die per run bestond: zolang showcase-CBT na een run sloot en bij de
@@ -122,9 +115,20 @@ export function LiveRunProvider({ children }) {
   const start = useCallback(
     async (scenarioId) => {
       setVerbindingWeg(false);
+      setBronFout(null);
       if (bron !== 'live') {
         setState(initState());
-        return bronRef.current?.start(scenarioId);
+        // Een opname kan ontbreken: verkeerde naam, of een asset die niet met de
+        // bundel meekwam. Zonder dit blijft die afwijzing in een niet-afgehandelde
+        // belofte hangen — de knop veert terug en er gebeurt niets, wat de lastigste
+        // storing is om te herkennen. De controle in opgeslagenBron weet precies wat
+        // er mis is; die melding hoort dus in beeld en niet alleen in de console.
+        try {
+          return await bronRef.current?.start(scenarioId);
+        } catch (fout) {
+          setBronFout(fout.message);
+          return { ok: false, fout: fout.message };
+        }
       }
       const uitkomst = await bronRef.current?.start(scenarioId);
       const nieuwId = uitkomst?.ok ? uitkomst.run?.runId : null;
@@ -155,6 +159,7 @@ export function LiveRunProvider({ children }) {
       connected,
       verbindingWeg,
       nietBereikbaar,
+      bronFout,
       // Valt de verbinding weg, dan loopt er voor ons niets meer: er komt geen
       // run-afgerond meer binnen, dus zonder dit zou de knop eeuwig op
       // "bezig..." blijven staan. Opnieuw starten is de herstelactie.
@@ -167,7 +172,7 @@ export function LiveRunProvider({ children }) {
       runGestopt: isGeeindigdMetStop(state.reden),
       start,
     }),
-    [bron, connected, verbindingWeg, nietBereikbaar, state, start, vergeetAfgerondeRun]
+    [bron, connected, verbindingWeg, nietBereikbaar, bronFout, state, start, vergeetAfgerondeRun]
   );
 
   return <LiveRunContext.Provider value={waarde}>{children}</LiveRunContext.Provider>;

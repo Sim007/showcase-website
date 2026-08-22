@@ -62,6 +62,12 @@ jobs:
       # een eigen rode stap met een eigen melding, en niet een webServer die
       # "timed out" zegt over iets wat nooit begonnen is.
       - run: npm run stub:haal
+      # Om dezelfde reden een eigen stap: lopen de afgeleide opnames uit de pas
+      # met de bundel, dan is dat een eigen rode regel met een eigen melding en
+      # niet een spec die halverwege de suite iets over een fixture zegt. De
+      # gate loopt ook mee in `test:e2e` (e2e/opnames.spec.js) — daar is hij
+      # niet over te slaan, hier is hij snel.
+      - run: npm run opnames
       - run: npm run test:e2e
       - uses: actions/upload-artifact@v4
         if: failure()

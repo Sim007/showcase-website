@@ -118,6 +118,28 @@ describe('Pipeline — showcase-CBT niet bereikbaar', () => {
     toon({ nietBereikbaar: true, bron: 'voltooid' });
     expect(screen.queryByText(/kies linksboven bij de bronkeuze/i)).not.toBeInTheDocument();
   });
+});
+
+// Een opgeslagen run die niet te laden is. Dit is de fout die je bij een nieuw
+// geleverde opname het eerst maakt (verkeerde naam, asset niet meegekomen), en
+// zonder deze melding veert de knop terug en gebeurt er niets — de storing die
+// het langst duurt voordat iemand hem begrijpt. De controle zelf zit in
+// opgeslagenBron.js; hier gaat het erom dat hij in beeld komt.
+describe('Pipeline — de opgeslagen run is niet te laden', () => {
+  beforeEach(() => {
+    h.waarde = null;
+  });
+
+  it('zet de reden op de pagina in plaats van hem in de console te laten', () => {
+    toon({ bron: '00-voltooid', bronFout: 'opgeslagen stream /opgeslagen/00-voltooid.json bestaat niet of is geen JSON' });
+    expect(screen.getByText(/niet af te spelen/i)).toBeInTheDocument();
+    expect(screen.getByText(/bestaat niet of is geen JSON/i)).toBeInTheDocument();
+  });
+
+  it('zwijgt wanneer er niets mis is', () => {
+    toon({ bron: 'voltooid' });
+    expect(screen.queryByText(/niet af te spelen/i)).not.toBeInTheDocument();
+  });
 
   // Zonder stamdata valt er niets te tonen, ook geen opgeslagen run. Dan hoort
   // er in elk geval een uitgang te zijn: dit was een pagina met alleen de
