@@ -210,6 +210,12 @@ gerepareerd.
   rotatie van drie opnames: elke `POST /v1/runs` schuift hem op (tot 0.10.0 ging dat per nieuwe
   verbinding). Twee specs tegelijk schuiven de rotatie onder elkaar weg.
 
+  In `runs/` liggen sinds bundel 0.13.0 víer bestanden, maar de rotatie loopt over drie:
+  `NAMEN = ['voltooid', 'gestopt', 'midden']` staat vast in `stub.js`. De echte opname van
+  scenario 00 zit er niet in, dus een live run speelt altijd scenario 01 — ongeacht welk
+  `scenarioId` je meestuurt. Nagemeten tegen 0.13.0:
+  `POST /v1/runs {"scenarioId":"00"}` geeft 201 met `scenarioId: "01"`.
+
   **Hoe de specs inhoudsvast zijn gemaakt.** De suite stond maanden rood omdat hij 20 stappen
   verwachtte en de inhoud er 6 werd. Het aantal stappen was nooit het gedrag dat we wilden
   vastleggen. Verwachtingen worden nu afgeleid uit de stamdata die de pagina zélf krijgt
@@ -273,18 +279,28 @@ lokaal een schone `npm audit` verwachten heeft geen zin.
 - Geen dark mode, geen authenticatie — voor een lokale demo niet nodig.
 - Scenario-inhoud komt van showcase-CBT/de stub, niet van onszelf — zie "Nieuw scenario
   toevoegen" hierboven voor de huidige beperking daarvan.
-- **De opgeslagen modus draait offline, maar alleen voor scenario 01.** Zowel de opgenomen stream
-  als de stamdata liggen er als bestand, dus de pagina werkt zonder showcase-CBT. De drie opnames
-  zijn de opnames uit stubbundel 0.11.0 — niet overgenomen maar **afgeleid**, zie "Wat wij
-  afspelen komt uit de bundel" hieronder — met elk hun eigen `runId`
-  (`voltooid` = `run-7c41a9`, `gestopt` = `run-3b8e02`, `begint bij stap 3` = `run-9d15f4`). Die
-  laatste opent met een momentopname van een run die al loopt en zonder `run-gestart` — dat is de
-  enige plek waar dat geval nog te zien is, want tegen de bundel is *instappen* tijdens een
-  lopende run niet meer na te bootsen. Voor de andere scenario's is er geen kopie.
+- **De opgeslagen modus draait offline, voor scenario 00 en 01.** Zowel de opgenomen stream als de
+  stamdata liggen er als bestand, dus de pagina werkt zonder showcase-CBT. De vier opnames komen
+  uit stubbundel 0.13.0 — niet overgenomen maar **afgeleid**, zie "Wat wij afspelen komt uit de
+  bundel" hieronder — met elk hun eigen `runId`:
+
+  | bron | scenario | `runId` | wat het is |
+  |---|---|---|---|
+  | `voltooid` | 01 | `run-7c41a9` | 27 stappen, alles slaagt |
+  | `gestopt` | 01 | `run-3b8e02` | valt om op stap 9, de eerste contractgate |
+  | `begint bij stap 3` | 01 | `run-9d15f4` | opent met een momentopname van een lopende run |
+  | `00 voltooid` | 00 | `run-000000` | **een echte opname**, 19 stappen, 87 seconden |
+
+  Die laatste is de enige manier om scenario 00 te zien: hij zit niet in de rotatie van de stub,
+  dus starten levert altijd 01. De drie andere zijn door showcase-CBT afgeleid uit de stamdata van
+  01 en niet opgenomen; dat verschil staat in de README van de bundel en niet in het manifest, dus
+  wij kunnen het niet lezen — `npm run opnames` waarschuwt daarover.
 
   **Een simulatie ís een opgeslagen stream** — dat is de eis, en hij geldt onverkort: de
   simulatiemodus moet werken zonder verbinding en zonder showcase-CBT. Gemeten vanaf een verse
-  sessie met showcase-CBT uit: scenario 01 haalt dat. De pagina bouwt op de meegeleverde
+  sessie met showcase-CBT uit: scenario 00 en 01 halen dat beide. Bij 00 is dat op 22-08-2026
+  helemaal doorlopen — 19 knopen, halverwege 9 groen met één lopend, 19 groen aan het eind, en een
+  rapport van 19 rijen met verstreken tijden van +0:00 tot +1:22. De pagina bouwt op de meegeleverde
   stamdatakopie, bevriest niet, de bronkeuze en de deelsysteem-vakjes werken, een opgeslagen run
   speelt volledig af en het rapport houdt hem vast. Voor de scenario's zonder kopie valt er
   niets te tonen — de stream draagt alleen stapnummers, dus zonder stamdata is niet te weten

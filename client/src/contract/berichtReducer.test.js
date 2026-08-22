@@ -4,6 +4,12 @@ import { initState, reduceerBericht, isGeeindigdMetStop } from './berichtReducer
 // Letterlijk de 'gestopt'-fixture uit de showcase-cbt stubbundel (0.11.0):
 // stap 3 mislukt, stap 4/5/6 krijgen geen enkel bericht. Elke opname heeft sinds
 // 0.11.0 zijn eigen runId — 'gestopt' is run-3b8e02.
+//
+// Met opzet niet meegegroeid met de bundel. In 0.13.0 telt 'gestopt' 9 stappen
+// en valt hij op de eerste contractgate; wat de reducer moet kunnen is niet
+// "negen" maar "een stap valt om en de rest krijgt niets", en dat leest hier
+// beter op zes regels dan op dertig. Die aantallen staan vast in
+// e2e/pipeline-opgeslagen.spec.js, tegen de echte opname.
 const GESTOPT_STREAM = [
   { soort: 'momentopname', tijd: '2026-08-06T09:12:44Z', run: null, afgerondeStappen: [] },
   { soort: 'run-gestart', tijd: '2026-08-06T09:12:45Z', runId: 'run-3b8e02', scenarioId: '01' },
@@ -22,11 +28,11 @@ const GESTOPT_STREAM = [
 // De kop van de 'midden'-fixture (0.11.0): een momentopname van een run die al
 // loopt, zonder `run-gestart` ervoor.
 //
-// Tegen de bundel is dit niet langer een láte kijker: die roteert op
-// POST /v1/runs en stelt zelf geen momentopname samen, dus instappen tijdens een
-// lopende run kun je er niet meer mee oefenen. De berichten die zo'n kijker
-// binnenkreeg zijn wél nog precies deze, en dat is wat de reducer moet kunnen.
-// Daarom staat het hier tegen de spec, en niet alleen in de fixture.
+// Dit is weer een echte late kijker: sinds bundel 0.11.1 stelt de stub bij een
+// tweede verbinding tijdens een lopende run de momentopname samen uit wat hij
+// verstuurd heeft (nagemeten tegen 0.13.0 op 22-08-2026). Deze test blijft
+// hiernaast staan omdat hij het geval deterministisch vastlegt: welke stappen
+// afgerond zijn hangt hier niet af van wanneer je aansluit.
 const LATE_KIJKER = [
   {
     soort: 'momentopname',

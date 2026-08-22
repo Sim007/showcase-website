@@ -63,10 +63,46 @@ export function verwachtUitBundel() {
     });
   }
 
-  // 2. De lokale stamdatakopie, voor de opgeslagen modus zonder showcase-CBT.
-  //    Die komt uit het antwoord dat de stub zelf op GET /v1/scenarios/:id geeft,
-  //    dus uit `stub-data.json` en niet uit een draaiende stub: een gate mag geen
-  //    poort nodig hebben.
+  // 2. De lokale stamdatakopieën, voor de opgeslagen modus zonder showcase-CBT.
+  //    Vanaf bundel 0.13.0 ligt de stamdata per scenario in `scenarios/<id>.json`
+  //    en levert de route in stub-data.json geen body meer. Dat is de splitsing
+  //    die 0.12.0 aankondigde, en het is precies wat een opname van 00 bruikbaar
+  //    maakt: de stream draagt alleen stapnummers.
+  const scenarioMap = join(bundel, 'scenarios');
+  if (existsSync(scenarioMap)) {
+    // De bundel heeft de stamdata twee keer: als los bestand in scenarios/, en
+    // als `bodyPerId` op de haalScenario-route in stub-data.json — dat laatste is
+    // wat de stub uitlevert. Wij leiden onze kopie af uit het losse bestand,
+    // want een gate mag geen draaiende stub nodig hebben. Dan moeten die twee wel
+    // hetzelfde zeggen: lopen ze uiteen, dan wijkt onze offline-kopie af van wat
+    // showcase-CBT antwoordt, en dat is precies het verschil dat niemand ziet.
+    // Bij 0.13.0 zijn ze gelijk; niets in de bundel houdt dat zo.
+    const route = lees(join(bundel, 'stub-data.json')).routes?.find((r) => r.operationId === 'haalScenario');
+    const perId = route?.bodyPerId ?? {};
+    for (const naam of readdirSync(scenarioMap).filter((n) => n.endsWith('.json'))) {
+      const dataset = lees(join(scenarioMap, naam));
+      if (!dataset.id) {
+        throw new Error(`scenarios/${naam} heeft geen id — dan is niet te zeggen welke kopie dit is`);
+      }
+      if (perId[dataset.id] && JSON.stringify(perId[dataset.id]) !== JSON.stringify(dataset)) {
+        throw new Error(
+          `scenarios/${naam} en stub-data.json (bodyPerId.${dataset.id}) beschrijven scenario ` +
+            `${dataset.id} verschillend — dan is niet te zeggen welke van de twee showcase-CBT uitlevert`
+        );
+      }
+      doelen.push({
+        soort: 'stamdata',
+        pad: join(opgeslagen, `scenario-${dataset.id}.json`),
+        bron: `scenarios/${naam}`,
+        inhoud: dataset,
+        tekst: `${JSON.stringify(dataset)}\n`,
+      });
+    }
+    return metSchema(doelen);
+  }
+
+  // Oudere bundels (t/m 0.11.0) hadden één stamdataset, als body van de route.
+  // Die weg blijft staan zodat dit script niet omvalt als er teruggerold wordt.
   const stubData = lees(join(bundel, 'stub-data.json'));
   const route = stubData.routes?.find((r) => r.patroon === SCENARIO_ROUTE);
   if (!route) {
@@ -91,7 +127,11 @@ export function verwachtUitBundel() {
     tekst: `${JSON.stringify(body)}\n`,
   });
 
-  // 3. Het berichtschema waarmee wij elke opname en elk live bericht toetsen.
+  return metSchema(doelen);
+}
+
+// 3. Het berichtschema waarmee wij elke opname en elk live bericht toetsen.
+function metSchema(doelen) {
   const schema = lees(join(bundel, 'schemas', 'berichten-ontvangst.json'));
   doelen.push({
     soort: 'schema',
@@ -100,7 +140,6 @@ export function verwachtUitBundel() {
     inhoud: schema,
     tekst: `${JSON.stringify(schema, null, 2)}\n`,
   });
-
   return doelen;
 }
 
@@ -171,14 +210,27 @@ function toetsManifest(doelen) {
     }
   }
 
-  for (const bron of perBestand.keys()) {
-    bevindingen.push({
-      soort: 'manifest',
-      tekst: `${bron} zit in de bundel maar staat niet in het \`opnames\`-blok van het manifest`,
-    });
-  }
+  // Niet-aangegeven materiaal is geen fout maar een onbekende herkomst, en dus
+  // een waarschuwing en geen rood. Squad 1 meldt bij 0.13.0 dat er twee soorten
+  // in runs/ liggen: de genummerde zijn échte runs, de drie ongenummerde zijn
+  // afgeleid uit de stamdata van scenario 01. Dat onderscheid staat in hun
+  // README en niet in het manifest, dus wij kunnen het niet lezen — en de
+  // bestandsnaam mag er niet voor gebruikt worden, want zij zeggen zelf dat het
+  // ontbrekende nummer geschiedenis is en geen betekenis. Zolang dat zo is,
+  // spelen wij een opname en een afgeleide fixture naast elkaar af zonder ze te
+  // kunnen onderscheiden. Dat hoort in het blok te staan, niet in proza.
+  const waarschuwingen = [...perBestand.keys()].map((bron) => ({
+    soort: 'herkomst',
+    tekst:
+      `${bron} staat niet in het \`opnames\`-blok, dus de herkomst is voor ons niet te lezen ` +
+      `(opgenomen run of afgeleid uit stamdata?)`,
+  }));
 
-  return { bevindingen, opmerking: `manifest declareert ${manifest.opnames.length} opnames` };
+  return {
+    bevindingen,
+    waarschuwingen,
+    opmerking: `manifest declareert ${manifest.opnames.length} van de ${opnames.length} opnames in runs/`,
+  };
 }
 
 function gelijk(a, b) {
@@ -264,10 +316,37 @@ export function toets() {
     }
   }
 
+  // Het label noemt een scenario, en dat is een bewering over de inhoud van de
+  // opname. Sinds 0.13.0 liggen er opnames van meer dan één scenario, dus een
+  // verkeerd label zet een kijker op een pagina waar de stream niet aan de
+  // stamdata koppelt en alles wachtend blijft.
+  for (const variant of OPGESLAGEN_VARIANTEN) {
+    const doel = doelen.find((d) => d.soort === 'opname' && d.sleutel === variant.key);
+    if (!doel || !variant.scenarioId) continue;
+    const inOpname = [
+      ...new Set(
+        doel.inhoud.map((b) => b.scenarioId ?? b.run?.scenarioId).filter(Boolean)
+      ),
+    ];
+    if (inOpname.length && !inOpname.includes(variant.scenarioId)) {
+      bevindingen.push({
+        soort: 'bronkeuze',
+        tekst:
+          `de bronkeuze zegt dat "${variant.key}" scenario ${variant.scenarioId} is, ` +
+          `maar in de opname staat ${inOpname.join('/')}`,
+      });
+    }
+  }
+
   const manifestToets = toetsManifest(doelen);
   bevindingen.push(...manifestToets.bevindingen);
 
-  return { doelen, bevindingen, opmerking: manifestToets.opmerking };
+  return {
+    doelen,
+    bevindingen,
+    waarschuwingen: manifestToets.waarschuwingen ?? [],
+    opmerking: manifestToets.opmerking,
+  };
 }
 
 // Alleen als CLI uitvoeren, niet bij importeren uit een spec.
@@ -282,9 +361,10 @@ if (process.argv[1] && process.argv[1].endsWith('opnames.mjs')) {
     process.exit(0);
   }
 
-  const { doelen, bevindingen, opmerking } = toets();
+  const { doelen, bevindingen, waarschuwingen, opmerking } = toets();
   console.log(`${doelen.length} afgeleide bestanden getoetst tegen .stub/bundel/`);
   if (opmerking) console.log(opmerking);
+  for (const w of waarschuwingen) console.log(`  let op — ${w.tekst}`);
   if (!bevindingen.length) {
     console.log('alles klopt met de bundel');
     process.exit(0);

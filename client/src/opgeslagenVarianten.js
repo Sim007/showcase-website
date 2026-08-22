@@ -11,15 +11,29 @@
 // redactionele keuze over wat een kijker moet begrijpen, geen gegeven uit het
 // contract. De sleutels zijn dat wel — die moeten kloppen met de bestandsnamen
 // die uit de bundel komen.
+//
+// `scenarioId` staat er sinds bundel 0.13.0 bij, want vanaf dan zijn er opnames
+// van méér dan één scenario. De bronkeuze geldt voor de hele sessie, dus je kunt
+// op de pagina van 01 een opname van 00 kiezen; dan zegt de pagina dat, maar het
+// label hoort het al te zeggen. Het is een bewering, dus `npm run opnames`
+// toetst hem tegen het scenarioId in de opname zelf.
 export const OPGESLAGEN_VARIANTEN = [
-  { key: 'voltooid', label: 'opgeslagen run: voltooid' },
-  { key: 'gestopt', label: 'opgeslagen run: gestopt' },
-  // 'midden' heette zo omdat je er middenin een run instapte. Tegen de bundel
-  // is dat niet meer te doen — die roteert op POST en stelt zelf geen
-  // momentopname samen — maar deze opname begint nog steeds met een
-  // momentopname van een lópende run: stap 1 en 2 afgerond, stap 3 bezig, geen
-  // `run-gestart`. Wat hier verdwenen is, is het instappen zelf, niet de
-  // berichten die je er als late kijker van kreeg. Vandaar een label over de
-  // opname en niet over de kijker.
-  { key: 'midden', label: 'opgeslagen run: begint bij stap 3' },
+  { key: 'voltooid', scenarioId: '01', label: 'opgeslagen run: 01 voltooid' },
+  { key: 'gestopt', scenarioId: '01', label: 'opgeslagen run: 01 gestopt' },
+  // 'midden' heette zo omdat je er middenin een run instapte. Deze opname begint
+  // met een momentopname van een lópende run — stap 1 en 2 afgerond, stap 3
+  // bezig, geen `run-gestart` — dus het label gaat over de opname en niet over
+  // de kijker.
+  //
+  // Instappen zélf kan sinds bundel 0.11.1 weer tegen de stub: verbind een tweede
+  // keer tijdens een lopende run en hij stelt de momentopname samen uit wat hij
+  // verstuurd heeft. Nagemeten tegen 0.13.0 op 22-08-2026: twaalf seconden na de
+  // start kwam er een momentopname met negen afgeronde stappen en
+  // `lopendeStap: 10`. Deze opname is dus niet meer de enige plek waar dat geval
+  // te zien is — hij is wel de plek waar het deterministisch is.
+  { key: 'midden', scenarioId: '01', label: 'opgeslagen run: 01 begint bij stap 3' },
+  // De eerste échte opname in de bundel: 87 seconden van een werkelijke run van
+  // scenario 00, niet afgeleid uit de stamdata. Dat verschil is voor deze
+  // showcase het punt, dus het staat in het label.
+  { key: '00-voltooid', scenarioId: '00', label: 'opgeslagen run: 00 voltooid (echte opname)' },
 ];

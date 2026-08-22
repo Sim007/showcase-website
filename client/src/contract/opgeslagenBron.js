@@ -1,9 +1,12 @@
 import { valideerBericht } from './schema.js';
 
 // Opgeslagen bron: geen verbinding, een eerder vastgelegde stream uit een
-// bestand — letterlijk de fixtures uit de showcase-cbt stubbundel (21/12/14
-// berichten, met tijdstempels). Zelfde consument als de live bron: dezelfde
-// validatie, dezelfde tolerantie. Het enige verschil zit aan de invoerkant.
+// bestand. De bestanden zijn afgeleid uit de showcase-cbt stubbundel en niet
+// overgenomen — zie scripts/opnames.mjs — en dragen tijdstempels, dus een opname
+// speelt zo lang als de run duurde. Bij bundel 0.13.0 is dat 84, 30, 77 en 60
+// berichten over 83, 29, 76 en 87 seconden. Zelfde consument als de live bron:
+// dezelfde validatie, dezelfde tolerantie. Het enige verschil zit aan de
+// invoerkant.
 export function maakOpgeslagenBron({ pad, onBericht }) {
   let getimede = [];
   let lopendeTimeouts = [];

@@ -16,8 +16,8 @@ import { mkdirSync, readFileSync, rmSync, writeFileSync, existsSync } from 'node
 import { dirname, join } from 'node:path';
 import { fileURLToPath } from 'node:url';
 
-const VERSIE = '0.11.0';
-const SHA256 = '9bc2e03530abf444dd8788182a41e7be0977be2aef1784b454bba0b8fe4b7ddd';
+const VERSIE = '0.13.0';
+const SHA256 = '7cc3e6bb88088668e5a98e216f950d50b89475c86a0a5d4f9a1968a2fbf5d7c3';
 
 const wortel = join(dirname(fileURLToPath(import.meta.url)), '..');
 const doel = join(wortel, '.stub');
