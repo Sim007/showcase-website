@@ -164,13 +164,17 @@ export default function Pipeline() {
 
       <h2 className="sectiekop">Dashboard</h2>
       <div className="controls">
+        {/* `liveKanNiet` gaat vóór `runningOtherScenario`, en dat is geen
+            smaakkwestie. "Wacht op ander scenario" belooft dat het straks wél
+            kan; op een scenario dat alleen opgeslagen te zien is, kan het ook
+            daarna niet. Wachten is dan een advies dat nergens heen leidt. */}
         <button className="primary" onClick={() => start(id)} disabled={running || liveKanNiet}>
           {runningThisScenario
             ? 'bezig...'
-            : runningOtherScenario
-              ? 'wacht op ander scenario'
-              : liveKanNiet
-                ? 'live starten kan nog niet'
+            : liveKanNiet
+              ? 'live starten kan nog niet'
+              : runningOtherScenario
+                ? 'wacht op ander scenario'
                 : 'Start scenario'}
         </button>
         <Link className="ghost" to={`/scenario/${id}/rapport`}>Rapport</Link>
@@ -226,7 +230,11 @@ export default function Pipeline() {
         </div>
       )}
 
-      {runningOtherScenario && (
+      {/* Niet tonen naast de melding hierboven: die zegt dat live starten hier
+          helemaal niet kan, deze zegt dat je moet wachten tot de andere run klaar
+          is. Samen lezen ze als "even geduld", terwijl wachten hier niets
+          oplevert. Gemeten met een run van 01 in de lucht en scenario 00 open. */}
+      {runningOtherScenario && !liveKanNiet && (
         <div className="melding">
           Er loopt een run voor scenario {scenarioId}, en hieronder staan de stappen van scenario {dataset.id}.
           Er kan er één tegelijk lopen, dus deze stappen blijven wachtend tot die run klaar is.

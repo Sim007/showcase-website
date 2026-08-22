@@ -179,6 +179,32 @@ describe('Pipeline — scenario dat alleen opgeslagen te zien is', () => {
     expect(await screen.findByRole('button', { name: 'Start scenario' })).toBeEnabled();
   });
 
+  // Gemeld vanaf het scherm: met een run van 01 in de lucht en scenario 00 open
+  // stonden er twee meldingen die elkaar tegenspraken — "live starten kan hier
+  // niet, kies de opgeslagen run" naast "deze stappen blijven wachtend tot die
+  // run klaar is". Die tweede belooft dat het straks wél kan, en dat is hier
+  // onwaar: ook na die run kun je dit scenario niet live starten. Wachten is dan
+  // een advies dat nergens heen leidt.
+  it('adviseert niet te wachten op een andere run, want wachten helpt hier niet', async () => {
+    toon({ bron: 'live', running: true, scenarioId: '02' });
+
+    expect(await screen.findByRole('button', { name: 'live starten kan nog niet' })).toBeInTheDocument();
+    expect(screen.queryByRole('button', { name: 'wacht op ander scenario' })).not.toBeInTheDocument();
+    expect(screen.queryByText(/blijven wachtend tot die run klaar is/i)).not.toBeInTheDocument();
+    // De melding die wél klopt blijft staan, met de weg die er wel is.
+    expect(screen.getByText(/nog geen live run/i)).toBeInTheDocument();
+  });
+
+  // En op een gewoon scenario blijft die melding juist staan: daar is wachten
+  // precies het goede advies.
+  it('blijft wél waarschuwen voor een andere run op een scenario dat live kan', async () => {
+    h.showcases = [{ id: '01', titel: 'Basis (API)', status: 'werkt' }];
+    toon({ bron: 'live', running: true, scenarioId: '02' });
+
+    expect(await screen.findByText(/blijven wachtend tot die run klaar is/i)).toBeInTheDocument();
+    expect(screen.getByRole('button', { name: 'wacht op ander scenario' })).toBeInTheDocument();
+  });
+
   // Zonder stamdata valt er niets te tonen, ook geen opgeslagen run. Dan hoort
   // er in elk geval een uitgang te zijn: dit was een pagina met alleen de
   // browserknop terug.
