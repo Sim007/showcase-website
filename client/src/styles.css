@@ -122,6 +122,9 @@ a { color: inherit; }
   margin-top: 10px;
 }
 .badge.werkt { background: rgba(12, 163, 12, 0.12); color: var(--status-good); }
+/* Aanklikbaar, maar niet hetzelfde als "werkt": eigen kleur, want twee standen
+   die allebei doorklikken en er hetzelfde uitzien zijn geen twee standen. */
+.badge.alleen-opgeslagen { background: rgba(191, 122, 0, 0.14); color: var(--series-1); }
 .badge.binnenkort { background: rgba(137, 135, 129, 0.14); color: var(--text-muted); }
 
 /* --- Pipeline page --- */

@@ -1,5 +1,7 @@
-import { useMemo, useState } from 'react';
+import { useEffect, useMemo, useState } from 'react';
 import { Link, useParams } from 'react-router-dom';
+import { fetchShowcases } from '../api.js';
+import { OFFLINE_SCENARIOS } from '../offlineScenarios.js';
 import { usePipelineRun } from '../usePipelineRun.js';
 import { OPGESLAGEN_VARIANTEN } from '../LiveRunProvider.jsx';
 import { verbindingsStatus } from '../verbindingsStatus.js';
@@ -14,6 +16,27 @@ export default function Pipeline() {
     deelsysteemLabels, bron, setBron, connected, verbindingWeg, nietBereikbaar, bronFout, running, scenarioId, start,
   } = usePipelineRun(id);
   const [uitgeschakeld, setUitgeschakeld] = useState(() => new Set());
+
+  // Wat de tegel over dit scenario belooft. Staat hij op `alleen-opgeslagen`,
+  // dan is openen waar en starten niet: de stub speelt de volgende opname uit
+  // een rotatie die dit scenario niet bevat, dus een klik op Start levert een run
+  // voor een ánder scenario op. De pagina zou dat daarna netjes melden, maar dan
+  // heb je de rotatie al opgeschoven en staat er een run te draaien die niemand
+  // wilde. Beter is de knop dichthouden en zeggen wat wél kan.
+  //
+  // Mislukt het ophalen, dan blijft dit null en gedraagt de pagina zich zoals
+  // altijd: de inhoud is van ons eigen servertje, en dat mag het dashboard niet
+  // kunnen blokkeren.
+  const [tegelStatus, setTegelStatus] = useState(null);
+  useEffect(() => {
+    let actueel = true;
+    fetchShowcases()
+      .then((lijst) => actueel && setTegelStatus(lijst.find((s) => s.id === id)?.status ?? null))
+      .catch(() => {});
+    return () => {
+      actueel = false;
+    };
+  }, [id]);
 
   const deelsystemen = useMemo(() => {
     const set = new Set(steps.map((s) => s.deelsysteem).filter((d) => d !== KETEN));
@@ -57,7 +80,15 @@ export default function Pipeline() {
         <p>Kon scenario {id} niet laden: {error}.</p>
         <p>
           Er ligt voor dit scenario ook geen meegeleverde kopie van de stappenlijst, dus zonder showcase-CBT
-          is er niets om te tonen — ook geen opgeslagen run. Scenario 01 werkt wel zonder showcase-CBT.
+          is er niets om te tonen — ook geen opgeslagen run.
+          {OFFLINE_SCENARIOS.length > 0 && (
+            <>
+              {' '}
+              {OFFLINE_SCENARIOS.length === 1 ? 'Scenario ' : "Scenario's "}
+              {OFFLINE_SCENARIOS.join(' en ')}{' '}
+              {OFFLINE_SCENARIOS.length === 1 ? 'werkt' : 'werken'} wel zonder showcase-CBT.
+            </>
+          )}
         </p>
       </div>
     );
@@ -66,6 +97,7 @@ export default function Pipeline() {
 
   const runningThisScenario = running && scenarioId === dataset.id;
   const runningOtherScenario = running && scenarioId !== dataset.id;
+  const liveKanNiet = bron === 'live' && tegelStatus === 'alleen-opgeslagen';
   const status = verbindingsStatus({ bron, connected, verbindingWeg, nietBereikbaar, stamdataUitLokaleKopie });
   const verkeerdeStamdata = dataset.id !== id;
 
@@ -132,8 +164,14 @@ export default function Pipeline() {
 
       <h2 className="sectiekop">Dashboard</h2>
       <div className="controls">
-        <button className="primary" onClick={() => start(id)} disabled={running}>
-          {runningThisScenario ? 'bezig...' : runningOtherScenario ? 'wacht op ander scenario' : 'Start scenario'}
+        <button className="primary" onClick={() => start(id)} disabled={running || liveKanNiet}>
+          {runningThisScenario
+            ? 'bezig...'
+            : runningOtherScenario
+              ? 'wacht op ander scenario'
+              : liveKanNiet
+                ? 'live starten kan nog niet'
+                : 'Start scenario'}
         </button>
         <Link className="ghost" to={`/scenario/${id}/rapport`}>Rapport</Link>
       </div>
@@ -155,6 +193,19 @@ export default function Pipeline() {
           showcase-CBT is niet bereikbaar, dus er valt nu geen nieuwe run te starten. Kies linksboven bij de
           bronkeuze een opgeslagen run — dat is een eerder vastgelegde stream, die volledig zonder
           showcase-CBT afspeelt.
+        </div>
+      )}
+
+      {/* De tegel van dit scenario zegt "alleen opgeslagen", en dit is de plek om
+          uit te leggen wat dat betekent — op de landingspagina past alleen een
+          badge. Niet verstoppen dat er iets níét kan: de showcase gaat erover dat
+          een grens zichtbaar hoort te zijn. */}
+      {liveKanNiet && (
+        <div className="melding">
+          Van dit scenario is er wel een opname, maar nog geen live run: showcase-CBT speelt bij Start de
+          volgende opname uit een rotatie waar dit scenario niet in zit, en dat zou een run voor een ander
+          scenario opleveren. Kies linksboven de opgeslagen run — dat is een echte, vastgelegde run van dit
+          scenario.
         </div>
       )}
 

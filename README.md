@@ -59,17 +59,14 @@ Dat de stream *tussen* runs dichtging was tijdelijk, en die vervaldatum is berei
 stubbundel 0.11.0 houdt showcase-CBT hem open, dus wij koppelen niet meer zelf los bij
 `run-afgerond`.
 
-**Eén ding dat de stub niet kan, en waar wij dus tegenaan lopen.** Verbind je midden in een
-lopende run, dan stelt de stub geen momentopname van dat moment samen maar speelt hij de
-opgenómen openingsmomentopname af — en die zegt `run: null`. Gemeten: een tweede verbinding die
-opengaat terwijl `voltooid` op stap 5 staat, krijgt "er loopt niets" en daarna de losse berichten
-van stap 5 en 6. Onze reducer zet dan `scenarioId` op null, waarna `usePipelineRun` die berichten
-niet meer aan het scenario kan koppelen: het dashboard blijft op "wachtend" terwijl de run
-afloopt. Dat raakt precies één pad — opnieuw starten ná een weggevallen verbinding terwijl de
-run aan de andere kant doorliep. Het is een tekort van de stub, niet van de spec (de
-momentopname kán een lopende run dragen), dus er valt aan onze kant niets te repareren zonder
-gedrag te verzinnen: de losse stapberichten dragen geen `scenarioId`, dus we kúnnen niet weten
-bij welk scenario ze horen.
+**Midden in een lopende run verbinden werkt** — dat was een tijdlang niet zo. Tot stubbundel
+0.11.0 speelde de stub de opgenómen openingsmomentopname af, dus je kreeg `run: null` terwijl er
+een run liep; onze reducer zette `scenarioId` dan op null en het dashboard bleef op "wachtend"
+tot het einde. Squad 1 heeft dat in 0.11.1 gerepareerd: de stub leidt de momentopname nu af uit
+wat hij werkelijk verstuurd heeft. Nagemeten tegen 0.13.0 op 22-08-2026 — twaalf seconden na de
+start gaf een tweede verbinding een momentopname met negen afgeronde stappen en `lopendeStap: 10`.
+Dat pad (opnieuw verbinden terwijl de run aan de andere kant doorloopt) is daarmee weer te oefenen
+zonder opname.
 
 **Stamdata wordt één keer opgehaald en vastgehouden** (`client/src/scenarioBron.js`), met een
 terugval op een meegeleverde kopie in `client/public/opgeslagen/` als showcase-CBT niet bereikbaar
@@ -79,8 +76,10 @@ zonder showcase-CBT helemaal niet starten.
 
 Komt de stamdata uit die kopie, dan zegt de pagina dat, en zegt de indicator *showcase-CBT niet
 bereikbaar* in plaats van *gereed* — anders zou dat laatste een bewering zijn waar geen bewijs
-meer voor is. Er ligt alleen een kopie voor scenario 01; voor een scenario zonder kopie faalt de
-pagina zichtbaar, en dat is de bedoeling.
+meer voor is. Er ligt een kopie voor scenario 00 en 01 — welke dat zijn wordt afgeleid uit de
+bundel en staat in `client/src/offlineScenarios.js`, zodat de pagina die opsomming niet uit het
+hoofd hoeft te kennen. Voor een scenario zonder kopie faalt de pagina zichtbaar, en dat is de
+bedoeling.
 
 ## Draaien vanaf een gepubliceerde image-tag
 
@@ -157,21 +156,29 @@ geen rebuild nodig.
 Scenario's komen niet meer uit lokale JSON-bestanden — die stamdata levert showcase-CBT (of
 de stub) via `GET /v1/scenarios/:id`. Aan onze kant:
 
-1. Zet `"status": "werkt"` voor dat scenario in `content/showcases.json` (de tegel op de
-   landingspagina — dit is eigen content, geen contractdata).
+1. Zet de status van dat scenario in `content/showcases.json` (de tegel op de landingspagina —
+   dit is eigen content, geen contractdata). Er zijn drie standen, en het verschil ertussen is
+   een belofte waar een test op staat:
+
+   | status | tegel | betekent |
+   |---|---|---|
+   | `werkt` | klikbaar, `● werkt` | openen **én** starten doen dit scenario |
+   | `alleen-opgeslagen` | klikbaar, `◑ alleen opgeslagen` | openen doet dit scenario en er is een opname; live starten kan niet |
+   | `binnenkort` | niet klikbaar, `○ binnenkort` | er valt niets te tonen |
+
+   `alleen-opgeslagen` bestaat voor scenario 00: eigen stamdata en een echte opname, maar de
+   rotatie van de stub bevat het scenario niet, dus Start zou een run voor 01 opleveren. Op zo'n
+   pagina staat de live startknop dicht mét de reden erbij, in plaats van dat je het achteraf
+   te horen krijgt. `e2e/landing.spec.js` toetst alle drie de standen; een status die daar niet
+   in staat valt op in plaats van stil als `binnenkort` te renderen.
 2. Introduceert het scenario een nieuwe deelsysteem-naam (iets anders dan payment/order/
    keten), voeg die dan ook toe aan `client/src/statusMeta.js` (`DEELSYSTEEM_LABELS`) en aan
    `client/src/styles.css` (`--ds-<naam>` en de bijbehorende `.ds-pill`/`.swimlane`-regels) —
    dat is nog niet data-gedreven.
-3. Voor de opgeslagen-modus: leg een vastgelegde stream + de bijbehorende
-   `GET /v1/scenarios/:id`-respons vast als JSON onder `client/public/opgeslagen/` (zie de
-   bestaande `voltooid.json`/`gestopt.json`/`midden.json`/`scenario-01.json` voor de vorm).
-
-**Let op, nog niet opgelost:** de scenario-content komt vandaag van showcase-CBT's/de stub's
-eigen voorbeelddata (het generieke 6-stappen-voorbeeld uit de `scenario-api`-spec) — niet meer
-de eerder handgeschreven, realistischere 29-staps content voor scenario 01. Dat is een
-inhoudelijke stap terug ten opzichte van vóór de EventSource-herschrijving, nog niet
-gerepareerd.
+3. Voor de opgeslagen modus hoef je niets neer te zetten: `npm run opnames:schrijf` leidt de
+   opname én de stamdatakopie af uit de bundel. Wat je wél doet is de opname een label geven in
+   `client/src/opgeslagenVarianten.js`, met het scenario erbij — dat is een redactionele keuze en
+   geen contractdata. Vergeet je het, dan zegt `npm run opnames` het.
 
 ## Testen
 
@@ -194,6 +201,10 @@ gerepareerd.
   niets hield dat zo — een afspraak op de plek waar een gate hoort. `scripts/opnames.mjs` leidt ze
   nu af: de opnames uit `runs/*.jsonl`, de lokale stamdatakopie uit de route voor
   `GET /v1/scenarios/:id` in `stub-data.json`, het berichtschema uit `schemas/`.
+  - Sinds bundel 0.13.0 hoort daar ook `client/src/offlineScenarios.js` bij: een gegenereerde
+    lijst van de scenario's waarvoor zowel een stamdatakopie als een opname meekomt. Die stond
+    eerst met de hand in een zin op de pagina ("Scenario 01 werkt wel zonder showcase-CBT") en
+    liep meteen achter toen 00 erbij kwam.
   - `npm run opnames` toetst en meldt afwijkingen; `npm run opnames:schrijf` leidt ze opnieuw af.
   - De toets loopt mee in `npm run test:e2e` (`e2e/opnames.spec.js`) en als eigen stap in CI, dus
     hij is niet over te slaan.

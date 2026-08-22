@@ -4,8 +4,16 @@ import { MemoryRouter, Route, Routes } from 'react-router-dom';
 
 // Alleen de pagina onder test: de databron eromheen is gemockt, zodat we de
 // renderbeslissingen kunnen afdwingen zonder een stream of stamdata-fetch.
-const h = vi.hoisted(() => ({ waarde: null }));
+const h = vi.hoisted(() => ({ waarde: null, showcases: [] }));
 vi.mock('../usePipelineRun.js', () => ({ usePipelineRun: () => h.waarde }));
+
+// De pagina leest de tegelstatus uit de eigen contentserver om te weten of live
+// starten hier iets kan opleveren. Alleen dát ene ding vervangen; de rest van
+// api.js blijft echt, want LiveRunProvider haalt er `CBT_BASE` uit.
+vi.mock('../api.js', async (origineel) => ({
+  ...(await origineel()),
+  fetchShowcases: () => Promise.resolve(h.showcases),
+}));
 
 import Pipeline from './Pipeline.jsx';
 
@@ -139,6 +147,36 @@ describe('Pipeline — de opgeslagen run is niet te laden', () => {
   it('zwijgt wanneer er niets mis is', () => {
     toon({ bron: 'voltooid' });
     expect(screen.queryByText(/niet af te spelen/i)).not.toBeInTheDocument();
+  });
+});
+
+// De derde tegelstand. Openen van zo'n scenario klopt, starten niet: de stub
+// speelt de volgende opname uit een rotatie waar het scenario niet in zit, dus
+// een klik levert een run voor een ánder scenario op én schuift de rotatie op.
+// De knop hoort dus dicht te zijn vóórdat dat gebeurt, niet erna te melden.
+describe('Pipeline — scenario dat alleen opgeslagen te zien is', () => {
+  beforeEach(() => {
+    h.waarde = null;
+    h.showcases = [{ id: '01', titel: 'Basis (API)', status: 'alleen-opgeslagen' }];
+  });
+
+  it('houdt de live startknop dicht en zegt waarom', async () => {
+    toon({ bron: 'live' });
+    const knop = await screen.findByRole('button', { name: 'live starten kan nog niet' });
+    expect(knop).toBeDisabled();
+    expect(screen.getByText(/wel een opname, maar nog geen live run/i)).toBeInTheDocument();
+  });
+
+  it('geeft de knop terug zodra je de opgeslagen run kiest', async () => {
+    toon({ bron: 'voltooid' });
+    expect(await screen.findByRole('button', { name: 'Start scenario' })).toBeEnabled();
+    expect(screen.queryByText(/nog geen live run/i)).not.toBeInTheDocument();
+  });
+
+  it('laat de knop met rust bij een scenario dat gewoon werkt', async () => {
+    h.showcases = [{ id: '01', titel: 'Basis (API)', status: 'werkt' }];
+    toon({ bron: 'live' });
+    expect(await screen.findByRole('button', { name: 'Start scenario' })).toBeEnabled();
   });
 
   // Zonder stamdata valt er niets te tonen, ook geen opgeslagen run. Dan hoort

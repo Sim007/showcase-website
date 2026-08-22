@@ -24,6 +24,7 @@ const wortel = join(dirname(fileURLToPath(import.meta.url)), '..');
 const bundel = join(wortel, '.stub', 'bundel');
 const opgeslagen = join(wortel, 'client', 'public', 'opgeslagen');
 const schemaKopie = join(wortel, 'client', 'src', 'contract', 'berichten-ontvangst.json');
+const offlineLijst = join(wortel, 'client', 'src', 'offlineScenarios.js');
 
 const SCENARIO_ROUTE = '^/v1/scenarios/[^/]+$';
 
@@ -130,7 +131,8 @@ export function verwachtUitBundel() {
   return metSchema(doelen);
 }
 
-// 3. Het berichtschema waarmee wij elke opname en elk live bericht toetsen.
+// 3. Het berichtschema waarmee wij elke opname en elk live bericht toetsen, en
+//    4. de lijst met scenario's die zonder showcase-CBT te tonen zijn.
 function metSchema(doelen) {
   const schema = lees(join(bundel, 'schemas', 'berichten-ontvangst.json'));
   doelen.push({
@@ -139,6 +141,37 @@ function metSchema(doelen) {
     bron: 'schemas/berichten-ontvangst.json',
     inhoud: schema,
     tekst: `${JSON.stringify(schema, null, 2)}\n`,
+  });
+
+  // Offline te tonen is een scenario pas als er twee dingen liggen: een
+  // stamdatakopie én minstens één opname. De stream draagt alleen stapnummers,
+  // dus zonder stamdata valt er niets te tekenen; zonder opname valt er niets af
+  // te spelen. Die lijst met de hand bijhouden ging al mis — de pagina noemde
+  // alleen scenario 01 terwijl 00 het sinds bundel 0.13.0 ook doet.
+  const scenariosMetOpname = new Set(
+    doelen
+      .filter((d) => d.soort === 'opname')
+      .flatMap((d) => d.inhoud.map((b) => b.scenarioId ?? b.run?.scenarioId))
+      .filter(Boolean)
+  );
+  const offline = doelen
+    .filter((d) => d.soort === 'stamdata' && scenariosMetOpname.has(d.inhoud.id))
+    .map((d) => d.inhoud.id)
+    .sort();
+
+  doelen.push({
+    soort: 'lijst',
+    pad: offlineLijst,
+    bron: 'scenarios/*.json + runs/*.jsonl',
+    inhoud: offline,
+    tekst:
+      `// GEGENEREERD door scripts/opnames.mjs — niet met de hand bijwerken.\n` +
+      `// Draai \`npm run opnames:schrijf\` na een bundelwissel; \`npm run opnames\`\n` +
+      `// toetst of dit nog klopt en loopt mee in de e2e-suite.\n` +
+      `//\n` +
+      `// De scenario's waarvoor zowel een stamdatakopie als een opname meekomt, en\n` +
+      `// die dus zonder showcase-CBT volledig te tonen zijn.\n` +
+      `export const OFFLINE_SCENARIOS = ${JSON.stringify(offline)};\n`,
   });
   return doelen;
 }
@@ -250,7 +283,13 @@ export function toets() {
       });
       continue;
     }
-    if (!gelijk(lees(doel.pad), doel.inhoud)) {
+    // Een gegenereerde module is geen JSON, dus die vergelijken we op tekst —
+    // met genormaliseerde regeleindes, want git zet die op Windows om.
+    const zelfde =
+      doel.soort === 'lijst'
+        ? readFileSync(doel.pad, 'utf8').replace(/\r\n/g, '\n') === doel.tekst
+        : gelijk(lees(doel.pad), doel.inhoud);
+    if (!zelfde) {
       bevindingen.push({
         soort: 'afwijking',
         tekst: `${kort} wijkt af van ${doel.bron} in de bundel — draai \`npm run opnames:schrijf\``,
@@ -277,7 +316,7 @@ export function toets() {
   // docs/reactie-20260822.md). Dan willen we het hier zien, niet daar.
   const perRunId = new Map();
   for (const doel of doelen) {
-    if (!Array.isArray(doel.inhoud)) continue;
+    if (doel.soort !== 'opname') continue;
     for (const id of new Set(doel.inhoud.map((b) => b.runId ?? b.run?.runId).filter(Boolean))) {
       if (!perRunId.has(id)) perRunId.set(id, []);
       perRunId.get(id).push(doel.bron);
